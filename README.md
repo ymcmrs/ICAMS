@@ -1,4 +1,4 @@
 # ICAMS
 
-An open source python module for InSAR troposphere correction using global atmospheric models.
+An open source module in python for InSAR troposphere Correction using global Atmospheric Models that considers the spatial Stochastic properties of the troposphere (ICAMS).
 

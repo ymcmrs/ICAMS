@@ -1,10 +1,9 @@
 #! /usr/bin/env python
 #################################################################
-###  Project: PyRite                                          ###
-###  Purpose: PYthon package of Reducing InSAR Trop Effects   ###
-###  Copy Right (c): 2019, Yunmeng Cao                        ###                                                           
-###  Contact : ymcmrs@gmail.com                               ###
-###  Inst. : King Abdullah University of Science & Technology ###   
+###  ICAMS: Python molude for InSAR troposphere correction    ###
+###         using global atmospheric models                   ###
+###  Copy Right (c): 2020, Yunmeng Cao                        ###                                                           
+###  Contact : ymcmrs@gmail.com                               ###  
 #################################################################
 
 import sys
@@ -16,7 +15,7 @@ import numpy as np
 import h5py
 import glob
 
-from pyrite import _utils as ut
+from icams import _utils as ut
 
 ###############################################################
 def check_variable_name(path):
@@ -28,6 +27,7 @@ def check_variable_name(path):
 
 
 def read_cfg(File, delimiter='='):
+# modified from PyAPS
     '''Reads the gigpy-configure file into a python dictionary structure.
     Input : string, full path to the template file
     Output: dictionary, gigpy configure content
@@ -58,7 +58,7 @@ def generate_datelist_txt(date_list,txt_name):
     return
 
 def cmdLineParse():
-    parser = argparse.ArgumentParser(description='Generate high-resolution maps of GPS tropospheric measurements.',\
+    parser = argparse.ArgumentParser(description='InSAR troposphere correction using global atmospheric models.',\
                                      formatter_class=argparse.RawTextHelpFormatter,\
                                      epilog=INTRODUCTION+'\n'+EXAMPLE)
 
@@ -82,12 +82,12 @@ INTRODUCTION = '''
 
 EXAMPLE = """
           usage:
-                 icams.py W/E/S/N SAR-image-time --date
-                 icams.py W/E/S/N SAR-image-time --date-list --method pyaps
-                 icams.py W/E/S/N SAR-image-time --date --model ERA5 --method icams
+                 icamsApp.py W/E/S/N SAR-image-time --date
+                 icamsApp.py W/E/S/N SAR-image-time --date-list --method pyaps
+                 icamsApp.py W/E/S/N SAR-image-time --date --model ERA5 --method icams
 
           example:
-                 icams.py 120/122/30/34 3499 --date 20200101 --model ERA5 --method icams
+                 icamsApp.py 120/122/30/34 3499 --date 20200101 --model ERA5 --method icams
   
 ###################################################################################
 """

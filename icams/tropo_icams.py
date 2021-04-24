@@ -1,12 +1,11 @@
 #! /usr/bin/env python
 #################################################################
-###  This program is part of icams  v1.0                     ### 
-###  Copy Right (c): 2019, Yunmeng Cao                        ###  
+###  This program is part of icams  v1.0                      ### 
+###  Copy Right (c): 2020, Yunmeng Cao                        ###  
 ###  Author: Yunmeng Cao                                      ###                                                          
-###  Email : ymcmrs@gmail.com                                 ###
-###  Univ. : King Abdullah University of Science & Technology ###   
+###  Email : ymcmrs@gmail.com                                 ###   
 #################################################################
-### Part of the codes are developed from PyAPS
+### this programs is used for MintPy outputs
 
 import sys
 import os
@@ -94,7 +93,7 @@ def cmdLineParse():
 
 INTRODUCTION = '''
 ##################################################################################
-   Copy Right(c): 2019, Yunmeng Cao   @icams v1.0
+   Copy Right(c): 2020, Yunmeng Cao   @icams v1.0
    
    Correcting InSAR tropospheric delays using icams based on ERA5 reanalysis data.
 '''

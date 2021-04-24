@@ -20,6 +20,6 @@ Step 7: Interpolating SAR/InSAR tropospheric delays [Make sure you have [elevati
 
 This is research code provided to you "as is" with NO WARRANTIES OF CORRECTNESS. Use at your own risk.
 
-Citation: Cao, Y.M., Jónsson, S., Li, Z.W., 2021, Advanced InSAR Tropospheric Corrections from Global Atmospheric Models that Incorporate Spatial Stochastic Properties of the Troposphere, Journal of geophysical research: solid earth, doi: 10.1029/2020JB020952
+Citation: [Cao, Y.M., Jónsson, S., Li, Z.W., 2021, Advanced InSAR Tropospheric Corrections from Global Atmospheric Models that Incorporate Spatial Stochastic Properties of the Troposphere, Journal of geophysical research: solid earth, doi: 10.1029/2020JB020952](https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2020JB020952)
 
 ******* ICAMS is still under development, and we will keep going to make it user friendly ******

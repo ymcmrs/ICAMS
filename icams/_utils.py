@@ -1,5 +1,5 @@
 ############################################################
-# Program is part of PyRite                                #
+# Program is part of icams                                #
 # Copyright 2019 Yunmeng Cao                               #
 # Contact: ymcmrs@gmail.com                                #
 ############################################################
@@ -24,7 +24,7 @@ import scipy.spatial as ss
 from scipy.optimize import leastsq
 from scipy.stats.stats import pearsonr
 
-from pyrite import elevation_models
+from icams import elevation_models
 from pykrige import OrdinaryKriging
 from pykrige import variogram_models
 
@@ -37,7 +37,7 @@ import h5py
 
 import pyproj
 
-from pyrite.geoid import GeoidHeight as gh # calculating geoid height
+from icams.geoid import GeoidHeight as gh # calculating geoid height
 
 ######Set up variables in model.cfg before using
 dpath = os.path.dirname(__file__)
@@ -1290,7 +1290,7 @@ def interp2d_levels(lonlos,latlos,hgtlvs,delaylos,attr, maxdem, mindem, Rescale)
         
     return delay_intp, lonvv, latvv, hgtuseful
 
-def pyrite_griddata_los(lonlos,latlos,hgtlvs,ddrylos,dwetlos,attr, maxdem, mindem, Rescale,method,kriging_points_numb):
+def icams_griddata_los(lonlos,latlos,hgtlvs,ddrylos,dwetlos,attr, maxdem, mindem, Rescale,method,kriging_points_numb):
     
     if method =='kriging':
         dwet_intp, lonvv, latvv, hgtuse = kriging_levels(lonlos,latlos,hgtlvs,dwetlos,attr, maxdem, mindem, Rescale,kriging_points_numb)
@@ -1432,7 +1432,7 @@ def interp2d_levels_zenith(lonlist,latlist,hgtlvs,delaylos,attr, maxdem, mindem,
         
     return delay_intp, lonvv, latvv, hgtuseful
 
-def pyrite_griddata_zenith(lonlist,latlist,hgtlvs,ddrylos,dwetlos,attr, maxdem, mindem, Rescale,method,kriging_points_numb):
+def icams_griddata_zenith(lonlist,latlist,hgtlvs,ddrylos,dwetlos,attr, maxdem, mindem, Rescale,method,kriging_points_numb):
     
     if method =='kriging':
         dwet_intp, lonvv, latvv, hgtuseful = kriging_levels_zenith(lonlist,latlist,hgtlvs,dwetlos,attr, maxdem, mindem, Rescale,kriging_points_numb)

@@ -1,9 +1,10 @@
 #! /usr/bin/env python
-###########################################
-# Program is part of PyRite               #
-# Copyright 2019, Yunmeng Cao             #
-# Contact: ymcmrs@gmail.com               #
-###########################################
+#################################################################
+###  This program is part of ICAMS   v1.0                     ### 
+###  Copy Right (c): 2020, Yunmeng Cao                        ###  
+###  Author: Yunmeng Cao                                      ###                                                          
+###  Contact : ymcmrs@gmail.com                               ### 
+#################################################################
 import os
 import sys
 import numpy as np

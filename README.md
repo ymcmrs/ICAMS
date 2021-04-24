@@ -17,7 +17,7 @@ Step 6: Interpolating LOS delays (SKlm) layer by layer \
 Step 7: Interpolating SAR/InSAR tropospheric delays [Make sure you have [elevation](https://pypi.org/project/elevation/) available and download the gobal geoid data] 
 
 
-ICAMS is still under development, and we will keep going to make it user friendly.
+[ICAMS is still under development, and we will keep going to make it user friendly.]
 
 This is research code provided to you "as is" with NO WARRANTIES OF CORRECTNESS. Use at your own risk.
 

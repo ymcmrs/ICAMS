@@ -11,7 +11,7 @@ The key steps of ICAMS can be summarized as follow: <br>
 step 1: Download weather model data [Make sure you have update the user.cfg file].\
 Step 2: Pre-processing of GAM outputs (P-layers to H-layers)\
 Step 3: Estimating LOS locations at different altitude layers [You need to input slc.par file to provide orbit data] \
-Step 4: Predicting trop-parameters at LOS locations (SKlm) [Make sure you have PyKrige module available] \
+Step 4: Predicting trop-parameters at LOS locations (SKlm) [Make sure you have [PyKrige](https://pypi.org/project/PyKrige/) module available] \
 Step 5: Calculating LOS delays \
 Step 6: Interpolating LOS delays (SKlm) layer by layer \
 Step 7: Interpolating SAR/InSAR tropospheric delays [Make sure you have download the gobal geoid data] 

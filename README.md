@@ -14,7 +14,7 @@ Step 3: Estimating LOS locations at different altitude layers [You need to input
 Step 4: Predicting trop-parameters at LOS locations (SKlm) [Make sure you have [PyKrige](https://pypi.org/project/PyKrige/) module available] \
 Step 5: Calculating LOS delays \
 Step 6: Interpolating LOS delays (SKlm) layer by layer \
-Step 7: Interpolating SAR/InSAR tropospheric delays [Make sure you have [elevation] (https://pypi.org/project/elevation/) available and download the gobal geoid data] 
+Step 7: Interpolating SAR/InSAR tropospheric delays [Make sure you have [elevation](https://pypi.org/project/elevation/) available and download the gobal geoid data] 
 
 
 ICAMS is still under development, and we will keep going to make it user friendly.

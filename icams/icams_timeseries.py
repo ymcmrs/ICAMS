@@ -22,7 +22,7 @@ def cmdLineParse():
     parser = argparse.ArgumentParser(description='Generate high-resolution tropospheric product map for a list of SAR acquisitions',formatter_class=argparse.RawTextHelpFormatter,epilog=INTRODUCTION+'\n'+EXAMPLE)
     parser.add_argument('--date-txt',dest='date_list', help='text of date list.')
     parser.add_argument('--data', dest='data', choices = {'tot_delay','wet_delay','dry_delay'}, default = 'tot_delay',help = 'type of the high-resolution tropospheric map.[default: tot_delay]')
-    parser.add_argument('--method', dest='method', choices = {'kriging','linear','cubic'},default = 'kriging',help = 'method used to interp the high-resolution map. [default: kriging]')
+    parser.add_argument('--method', dest='method', choices = {'sklm','linear','cubic'},default = 'sklm',help = 'method used to interp the high-resolution map. [default: sklm]')
     parser.add_argument('--project', dest='project', choices = {'zenith','los'},default = 'los',help = 'project method for calculating the accumulated delays. [default: los]')
     parser.add_argument('--atm-dir',dest='atm_dir', help='directory of the atmospheric data. [default: ./gigpy/atm]')
     parser.add_argument('-o','--out', dest='out', help='Name of the output file.')

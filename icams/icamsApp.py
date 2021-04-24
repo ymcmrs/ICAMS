@@ -13,10 +13,217 @@ import subprocess
 import argparse
 import numpy as np
 import h5py
+from skimage import io
 import glob
 
+from icams import _utils as ut
 
 ###############################################################
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        pass
+ 
+    try:
+        import unicodedata
+        unicodedata.numeric(s)
+        return True
+    except (TypeError, ValueError):
+        pass
+ 
+    return False  
+
+def read_region(STR):
+    WEST = STR.split('/')[0]
+    EAST = STR.split('/')[1].split('/')[0]
+    
+    SOUTH = STR.split(EAST+'/')[1].split('/')[0]
+    NORTH = STR.split(EAST+'/')[1].split('/')[1]
+    
+    WEST =float(WEST)
+    SOUTH=float(SOUTH)
+    EAST=float(EAST)
+    NORTH=float(NORTH)
+    return WEST,SOUTH,EAST,NORTH
+
+
+def get_meta_corner(meta):
+    if 'Y_FIRST' in meta.keys():
+        lat0 = float(meta['Y_FIRST'])
+        lon0 = float(meta['X_FIRST'])
+        lat_step = float(meta['Y_STEP'])
+        lon_step = float(meta['X_STEP'])
+        lat1 = lat0 + lat_step * (length - 1)
+        lon1 = lon0 + lon_step * (width - 1)
+        
+        NORTH = lat0
+        SOUTH = lat1  
+        WEST = lon0
+        EAST = lon1    
+        
+    else:       
+        lats = [float(meta['LAT_REF{}'.format(i)]) for i in [1,2,3,4]]
+        lons = [float(meta['LON_REF{}'.format(i)]) for i in [1,2,3,4]]
+        
+        lat0 = np.max(lats[:])
+        lat1 = np.min(lats[:])
+        lon0 = np.min(lons[:])
+        lon1 = np.max(lons[:])
+        
+        NORTH = lat0 + 0.1
+        SOUTH = lat1 + 0.1
+        WEST = lon0 + 0.1
+        EAST = lon1 + 0.1
+    
+    return WEST,SOUTH,EAST,NORTH
+
+def unitdate(DATE):
+    LE = len(str(int(DATE)))
+    DATE = str(int(DATE))
+    if LE==5:
+        DATE = '200' + DATE  
+    
+    if LE == 6:
+        YY = int(DATE[0:2])
+        if YY > 80:
+            DATE = '19' + DATE
+        else:
+            DATE = '20' + DATE
+    return DATE
+
+def read_txt_line(txt):
+    # Open the file with read only permit
+    f = open(txt, "r")
+    # use readlines to read all lines in the file
+    # The variable "lines" is a list containing all lines in the file
+    lines = f.readlines()
+    lines0 = [line.strip() for line in lines] 
+    f.close()
+    
+    # remove empty lines
+    lines_out = [] 
+    for line in lines0:
+        if not len(line) ==0:
+            lines_out.append(line)
+    return lines_out
+
+def get_lack_datelist(date_list, date_list_exist):
+    date_list0 = []
+    for k0 in date_list:
+        if k0 not in date_list_exist:
+            date_list0.append(k0)
+    
+    return date_list0
+
+def era5_time(research_time0):
+    
+    research_time =  round(float(research_time0) / 3600)
+    if len(str(research_time)) == 1:
+        time0 = '0' + str(research_time)
+    else:
+        time0 = str(research_time)
+    
+    return time0
+
+def ceil_to_5(x):
+    """Return the closest number in multiple of 5 in the larger direction"""
+    assert isinstance(x, (int, np.int16, np.int32, np.int64)), 'input number is not int: {}'.format(type(x))
+    if x % 5 == 0:
+        return x
+    return x + (5 - x % 5)
+
+def floor_to_5(x):
+    """Return the closest number in multiple of 5 in the lesser direction"""
+    assert isinstance(x, (int, np.int16, np.int32, np.int64)), 'input number is not int: {}'.format(type(x))
+    return x - x % 5
+
+def floor_to_1(x):
+    """Return the closest number in multiple of 5 in the lesser direction"""
+    assert isinstance(x, (int, np.int16, np.int32, np.int64)), 'input number is not int: {}'.format(type(x))
+    return x - x % 1
+
+def ceil_to_1(x):
+    """Return the closest number in multiple of 5 in the larger direction"""
+    assert isinstance(x, (int, np.int16, np.int32, np.int64)), 'input number is not int: {}'.format(type(x))
+    if x % 1 == 0:
+        return x
+    return x + (1 - x % 1)
+
+def floor_to_2(x):
+    """Return the closest number in multiple of 5 in the lesser direction"""
+    assert isinstance(x, (int, np.int16, np.int32, np.int64)), 'input number is not int: {}'.format(type(x))
+    return x - x % 2
+
+def ceil_to_2(x):
+    """Return the closest number in multiple of 5 in the larger direction"""
+    assert isinstance(x, (int, np.int16, np.int32, np.int64)), 'input number is not int: {}'.format(type(x))
+    if x % 2 == 0:
+        return x
+    return x + (2 - x % 2)
+
+def get_snwe(wsen, min_buffer=0.5, multi_1=True):
+    # get bounding box
+    lon0, lat0, lon1, lat1 = wsen
+    # lat/lon0/1 --> SNWE
+    S = np.floor(min(lat0, lat1) - min_buffer).astype(int)
+    N = np.ceil( max(lat0, lat1) + min_buffer).astype(int)
+    W = np.floor(min(lon0, lon1) - min_buffer).astype(int)
+    E = np.ceil( max(lon0, lon1) + min_buffer).astype(int)
+
+    # SNWE in multiple of 5
+    if multi_1:
+        S = floor_to_1(S)
+        W = floor_to_1(W)
+        N = ceil_to_1(N)
+        E = ceil_to_1(E)
+    return (S, N, W, E)
+
+
+def get_fname_list(date_list,area,hr):
+    
+    flist = []
+    for k0 in date_list:
+        f0 = 'ERA-5{}_{}_{}.grb'.format(area, k0, hr)
+        flist.append(f0)
+        
+    return flist
+    
+def snwe2str(snwe):
+    """Get area extent in string"""
+    if not snwe:
+        return None
+
+    area = ''
+    s, n, w, e = snwe
+
+    if s < 0:
+        area += '_S{}'.format(abs(s))
+    else:
+        area += '_N{}'.format(abs(s))
+
+    if n < 0:
+        area += '_S{}'.format(abs(n))
+    else:
+        area += '_N{}'.format(abs(n))
+
+    if w < 0:
+        area += '_W{}'.format(abs(w))
+    else:
+        area += '_E{}'.format(abs(w))
+
+    if e < 0:
+        area += '_W{}'.format(abs(e))
+    else:
+        area += '_E{}'.format(abs(e))
+    return area
+
+def get_sufix(STR):
+    n = len(STR.split('.'))
+    SUFIX = STR.split('.')[n-1]
+   
+    return SUFIX 
 
 def get_dataNames(FILE):
     with h5py.File(FILE, 'r') as f:
@@ -83,10 +290,10 @@ def cmdLineParse():
     parser.add_argument('--date-txt', dest='date_txt',help='date list text to extract.')
     parser.add_argument('--date-file', dest='date_file',help='mintPy formatted h5 file, which contains date infomration.')
     
-    #parser.add_argument('--project', dest='project', choices = {'zenith','los'},default = 'los',help = 'project method for calculating the accumulated delays. [default: los]')
-    #parser.add_argument('--method', dest='method', choices = {'sklm','linear','cubic'},default = 'sklm',help = 'method used to interp the high-resolution map. [default: kriging]')
-    #parser.add_argument('--sklm-points-numb', dest='sklm_points_numb', type=int, default=20, help='Number of the closest points used for sklm interpolation. [default: 20]')
-    #parser.add_argument('--lalo-rescale', dest='lalo_rescale', type=int, default=5, help='oversample rate of the lats and lons [default: 5]')
+    parser.add_argument('--project', dest='project', choices = {'zenith','los'},default = 'los',help = 'project method for calculating the accumulated delays. [default: los]')
+    parser.add_argument('--method', dest='method', choices = {'sklm','linear','cubic'},default = 'sklm',help = 'method used to interp the high-resolution map. [default: kriging]')
+    parser.add_argument('--sklm-points-numb', dest='sklm_points_numb', type=int, default=20, help='Number of the closest points used for sklm interpolation. [default: 20]')
+    parser.add_argument('--lalo-rescale', dest='lalo_rescale', type=int, default=5, help='oversample rate of the lats and lons [default: 5]')
 
     inps = parser.parse_args()
 
@@ -102,13 +309,11 @@ INTRODUCTION = '''
 
 EXAMPLE = """example:
   
-  icamsApp.py timeseries.h5 geometryRadar.h5 SAR.slc.par --lalo-rescale 10 
-  icamsApp.py timeseries.h5 geometryRadar.h5 SAR.slc.par --project zenith
-  icamsApp.py timeseries.h5 geometryRadar.h5 SAR.slc.par --project los --lalo-rescale 5
-  icamsApp.py timeseries.h5 geometryRadar.h5 SAR.slc.par --project los --method linear
-  icamsApp.py timeseries.h5 geometryRadar.h5 SAR.slc.par --project los --method kriging
+  icamsApp.py 122/124/33/35 Hawaii.slc.par --date-list 20180101 20180501 --lalo-rescale 10 
+  icamsApp.py 122/124/33/35 Hawaii.slc.par --date-list 20180101 20180501 --method sklm
+  icamsApp.py 122/124/33/35 Hawaii.slc.par --date-list 20180101 --project los --method sklm
+  icamsApp.py 122/124/33/35 Hawaii.slc.par --date-list 20180101 --project zenith --lalo-rescale 10 
 
-  
 ###################################################################################
 """
 
@@ -116,8 +321,6 @@ EXAMPLE = """example:
 def main(argv):
     
     inps = cmdLineParse() 
-    ts_file = inps.ts_file
-    geo_file = inps.geo_file
     slc_par = inps.sar_par
     
     root_dir = os.getcwd()
@@ -125,14 +328,41 @@ def main(argv):
     atm_dir = root_dir + '/icams/ERA5'
     atm_raw_dir = root_dir + '/icams/ERA5/raw'
     atm_sar_dir = root_dir + '/icams/ERA5/sar'
+    raw_dir = atm_raw_dir
+    era5_dir = raw_dir
+    
+    T0 = ut.read_gamma_par(inps.sar_par, 'read', 'center_time:')
+    research_time = T0.split('s')[0]
+    hour = era5_time(research_time)
     
     if not os.path.isdir(icams_dir): os.mkdir(icams_dir)
     if not os.path.isdir(atm_dir): os.mkdir(atm_dir)
     if not os.path.isdir(atm_raw_dir): os.mkdir(atm_raw_dir)
     if not os.path.isdir(atm_sar_dir): os.mkdir(atm_sar_dir)
 
-    meta = read_attr(ts_file)
+     # Get research region (w, s, e, n)
+    w,s,e,n = read_region(inps.corners)   
+    wsen = (w,s,e,n)    
+    snwe = get_snwe(wsen, min_buffer=0.5, multi_1=True)
+    area = snwe2str(snwe) 
     
+    #meta = read_attr(ts_file)
+    # Get date list  
+    date_list = []
+    if inps.date_list: date_list = inps.date_list
+        
+    if inps.date_txt:
+        date_list2 = read_txt_line(inps.date_txt)
+        for list0 in date_list2:
+            if (list0 not in date_list) and is_number(list0):
+                date_list.append(list0)
+                
+    if inps.date_file: 
+        date_list3 = ut.read_hdf5(inps.date_file, datasetName='date')[0]
+        date_list3 = date_list3.astype('U13')
+        for list0 in date_list3:
+            if (list0 not in date_list) and is_number(list0):
+                date_list.append(list0)
     
     #if not os.path.isdir(gps_dir): 
     #    os.mkdir(gps_dir)
@@ -143,46 +373,98 @@ def main(argv):
     
     #date_list_exist = [os.path.basename(x).split('_')[5] for x in glob.glob(atm_raw_dir + '/ERA-5*.grb')]
    
-    date_list = read_hdf5(ts_file,datasetName='date')[0]
-    date_list = date_list.astype('U13')
-    date_list = list(date_list)
+    ## Download data
+    flist = get_fname_list(date_list,area,hour)
     
-    #date_list_download = []
-    #for i in range(len(date_list)):
-    #    if not date_list[i] in date_list_exist:
-    #        date_list_download.append(date_list[i])
-            
-    #print('---------------------------------------')
-    #print('Total number of gps data: ' + str(len(date_list)))
-    #print('Exist number of gps data: ' + str(len(date_list)-len(date_list_download)))
-    #print('Number of date to download: ' + str(len(date_list_download)))
+    date_list = list(map(int, date_list))
+    date_list = sorted(date_list)
+    date_list = list(map(str, date_list))
     
-    #if len(date_list_download) > 0:
-    #    #print('Start to download gps data...')
-    txt_download = 'datelist_download.txt'
-    generate_datelist_txt(date_list,txt_download)
-    print('----------- Step 1 --------------')
-    print('Start to download ERA-5 data...')
-    call_str = 'download_era5.py --region-file ' + ts_file + ' --time-file ' + ts_file + ' --date-txt ' + txt_download
+    flist_era5_exist = [os.path.basename(x) for x in glob.glob(raw_dir + '/ERA-5*')]
+    flist_download = []
+    date_list_download = []
+    for f0 in flist: 
+        if not f0 in flist_era5_exist:
+            f00 = os.path.join(raw_dir, f0) # add basedir
+            flist_download.append(f00)
+            date_list_download.append(f0.split('_')[5])
+    
+    print('')
+    print('Total number of ERA5-data need to be downloaded: %s' % str(len(flist)))
+    print('Existed number of ERA5-data : %s' % str(len(flist)-len(flist_download)))
+    print('Number of the to be downloaded ERA5-data : %s' % str(len(flist_download)))
+    print('')
+    
+    ut.ECMWFdload(date_list_download, hour, era5_dir, model='ERA5', snwe=snwe, flist = flist_download)
+    #######
+    
+    ### Download DEM 
+    #call_str='wget -q -O dem.tif "http://ot-data1.sdsc.edu:9090/otr/getdem?north=%f&south=%f&east=%f&west=%f&demtype=SRTMGL1"' % (n,s,e,w)
+    call_str = 'eio --product SRTM1 clip -o dem.tif --bounds ' + str(w) + ' ' + str(s) + ' ' + str(e) + ' ' + str(n)
+    print(call_str)
+    os.system(call_str)    
+    DEM = 'dem.tif'
+
+    SUFIX = get_sufix(DEM)
+    SS ='.' + SUFIX
+    DTIF = DEM.replace(SS,'.tif')
+
+    if not SUFIX == 'tif':
+        call_str = 'gdal_translate ' + DEM + ' -of GTiff ' + DTIF
+        os.system(call_str)
+
+    DEM = DTIF
+    call_str = 'gdalinfo ' + DEM + ' >ttt'     
     os.system(call_str)
     
-    #if inps.type =='tzd': 
-    #    Stype = 'Tropospheric delays'
-    #else:  
-    #    Stype = 'Atmospheric water vapor'
-    print('')
-    print('----------- Step 2 --------------')
-    print('Start to generate high-resolution tropospheric maps ...' )
-    #print('Type of the tropospheric products: %s' % Stype)
-    #print('Elevation model: %s' % inps.elevation_model)
-    #print('Method used for interpolation: %s' % inps.interp_method)
-    if inps.method =='kriging':
-        print('Variogram model: Spherical')
-        print('Number of bins: 50')
-        #$print('Max-length used for variogram-modeling: %s' % str(inps.max_length))
+    f = open('ttt')    
+    for line in f:
+        if 'Origin =' in line:
+            STR1 = line
+            AA = STR1.split('Origin =')[1]
+            Corner_LON = AA.split('(')[1].split(',')[0]
+            Corner_LAT = AA.split('(')[1].split(',')[1].split(')')[0]
+        elif 'Pixel Size ' in line:
+            STR2 = line
+            AA = STR2.split('Pixel Size =')[1]
+            Post_LON = AA.split('(')[1].split(',')[0]
+            Post_LAT = AA.split('(')[1].split(',')[1].split(')')[0]
         
-    print('')
+        elif 'Size is' in line:
+            STR3 = line
+            AA =STR3.split('Size is')[1]
+            WIDTH = AA.split(',')[0]
+            FILE_LENGTH = AA.split(',')[1]
+    f.close()
     
+    heis = io.imread(DEM); heis = np.asarray(heis, dtype = float)
+    
+    WIDTH = int(WIDTH); LENGTH = int(FILE_LENGTH)
+    xnumb = np.arange(WIDTH); ynumb = np.arange(LENGTH)
+    xx,yy = np.meshgrid(xnumb,ynumb)
+    
+    lats = yy*float(Post_LAT) + float(Corner_LAT)
+    lons = xx*float(Post_LON) + float(Corner_LON)
+    
+    DEMH5 = 'geometry.h5'
+    datasetDict = dict()
+    datasetDict['height'] = heis
+    datasetDict['latitude'] = lats
+    datasetDict['longitude'] = lons
+    
+    meta0 = dict()
+    meta0['X_FIRST'] = Corner_LON
+    meta0['Y_FIRST'] = Corner_LAT
+    meta0['X_STEP'] = Post_LAT
+    meta0['Y_STEP'] = Post_LON
+    meta0['LENGTH'] = LENGTH
+    meta0['WIDTH'] = WIDTH
+    
+    ut.write_h5(datasetDict, DEMH5, metadata= meta0, ref_file=None, compression=None)
+    
+    
+    print('')
+    print('Start to generate SAR delays...')
     date_generate = []
     for i in range(len(date_list)):
         out0 = atm_sar_dir + '/' + date_list[i] + '_' + inps.project + '_' + inps.method + '.h5'
@@ -196,30 +478,10 @@ def main(argv):
     for i in range(len(date_generate)):
         
         print('Date: ' + date_generate[i] + ' (' + str(i+1) + '/' + str(len(date_generate)) + ')')
-        call_str = 'tropo_icams_sar.py ' + geo_file + ' ' + slc_par + ' --date ' + date_generate[i] + ' --method ' + inps.method + ' --project ' + inps.project + ' --lalo-rescale ' + str(inps.lalo_rescale) + ' --kriging-points-numb ' + str(inps.kriging_points_numb)
+        call_str = 'tropo_icams_sar.py ' + DEMH5 + ' ' + inps.sar_par + ' --date ' + date_generate[i] + ' --method ' + inps.method + ' --project ' + inps.project + ' --lalo-rescale ' + str(inps.lalo_rescale) + ' --sklm-points-numb ' + str(inps.sklm_points_numb)
         os.system(call_str)        
-   
-    print('')
-    print('----------- Step 3 --------------')
-    print('Start to generate time-series of tropospheric data ...' )
-    txt_list = 'date_list_atm.txt'
-    generate_datelist_txt(date_list,txt_list)
-    date_list0 = [os.path.basename(k0).split('_')[0] for k0 in glob.glob(atm_sar_dir+'/*' + inps.project + '_' + inps.method + '*')]
-    date_list = sorted(set(date_list0))
-    generate_datelist_txt(date_list,txt_list)
     
-    call_str =  'icams_timeseries.py --date-txt ' + txt_list + ' --project ' + inps.project + ' --method ' + inps.method 
-    os.system(call_str)
     
-    print('Done.')
-    
-    print('')
-    print('----------- Step 4 --------------')
-
-    print('')
-    print('Start to correct InSAR time-series tropospheric delays ...' )
-    call_str = 'diff_icams.py ' + inps.ts_file + ' ' + ' timeseries_icams_' + inps.project + '_' + inps.method + '.h5' + ' --add  -o timeseries_icamsCor' + '_' + inps.project + '_' + inps.method + '.h5'
-    os.system(call_str)
     print('Done.')
 
     sys.exit(1)

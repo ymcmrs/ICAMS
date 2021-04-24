@@ -1,5 +1,5 @@
 [![Language](https://img.shields.io/badge/python-3.5%2B-blue.svg)](https://www.python.org/)
-[![Citation](https://img.shields.io/badge/doi-10.1016%2Fj.cageo.2020JB020952-blue)](https://doi.org/10.1029/2020JB020952)
+[![Citation](https://img.shields.io/badge/doi-10.1016%2Fj.jgr.solidearth.2020JB020952-blue)](https://doi.org/10.1029/2020JB020952)
 
 
 # ICAMS

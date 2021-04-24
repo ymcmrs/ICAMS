@@ -6,6 +6,8 @@
 
 An open source module in python for InSAR troposphere Correction using global Atmospheric Models that considers the spatial Stochastic properties of the troposphere (ICAMS). We model (funcitonal model + stochatic model) the tropospheric parameters (P,T, and e) layer by layer along the altitude levels, and we calculate the InSAR delays along the LOS direction. ICAMS can be applied with all of the weather models (global or local). Currently, our code support to download and process [ERA5 reanalysis data](https://retostauffer.org/code/Download-ERA5/) from ECMWF, and ICAMS can be used with [MintPy](https://github.com/insarlab/MintPy) hdf5 outputs directly.
 
+This is research code provided to you "as is" with NO WARRANTIES OF CORRECTNESS. Use at your own risk.
+
 The key steps of ICAMS can be summarized as follow: <br> 
 
 step 1: Download weather model data [Make sure you have updated the user.cfg file].\
@@ -17,8 +19,6 @@ Step 6: Interpolating LOS delays (SKlm) layer by layer \
 Step 7: Interpolating SAR/InSAR tropospheric delays [Make sure you have [elevation](https://pypi.org/project/elevation/) available and download the gobal geoid data] 
 
 
-
-This is research code provided to you "as is" with NO WARRANTIES OF CORRECTNESS. Use at your own risk.
 
 Citation: [Cao, Y.M., Jónsson, S., Li, Z.W., 2021, Advanced InSAR Tropospheric Corrections from Global Atmospheric Models that Incorporate Spatial Stochastic Properties of the Troposphere, Journal of geophysical research: solid earth, doi: 10.1029/2020JB020952](https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2020JB020952)
 

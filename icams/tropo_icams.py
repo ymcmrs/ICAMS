@@ -5,7 +5,7 @@
 ###  Author: Yunmeng Cao                                      ###                                                          
 ###  Email : ymcmrs@gmail.com                                 ###   
 #################################################################
-### this programs is used for MintPy outputs
+### this programs can be used for MintPy outputs
 
 import sys
 import os

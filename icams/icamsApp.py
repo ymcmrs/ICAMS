@@ -1,9 +1,9 @@
 #! /usr/bin/env python
 #################################################################
-###  ICAMS: Python molude for InSAR troposphere correction    ###
-###         using global atmospheric models                   ###
-###  Copy Right (c): 2020, Yunmeng Cao                        ###                                                           
-###  Contact : ymcmrs@gmail.com                               ###  
+###  ICAMS: Python module for InSAR troposphere correction    ### 
+###  Copy Right (c): 2020, Yunmeng Cao                        ###  
+###  Author: Yunmeng Cao                                      ###                                                          
+###  Email : ymcmrs@gmail.com                                 ###   
 #################################################################
 
 import sys
@@ -15,38 +15,52 @@ import numpy as np
 import h5py
 import glob
 
-from icams import _utils as ut
 
 ###############################################################
-def check_variable_name(path):
-    s=path.split("/")[0]
-    if len(s)>0 and s[0]=="$":
-        p0=os.getenv(s[1:])
-        path=path.replace(path.split("/")[0],p0)
-    return path
+
+def get_dataNames(FILE):
+    with h5py.File(FILE, 'r') as f:
+        dataNames = []
+        for k0 in f.keys():
+            dataNames.append(k0)
+    return dataNames
+
+def read_hdf5(fname, datasetName=None, box=None):
+    # read hdf5
+    with h5py.File(fname, 'r') as f:
+        data = f[datasetName][:]
+        atr = dict(f.attrs)
+        
+    return data, atr
+
+def read_attr(fname):
+    # read hdf5
+    with h5py.File(fname, 'r') as f:
+        atr = dict(f.attrs)
+        
+    return atr
 
 
-def read_cfg(File, delimiter='='):
-# modified from PyAPS
-    '''Reads the gigpy-configure file into a python dictionary structure.
-    Input : string, full path to the template file
-    Output: dictionary, gigpy configure content
-    Example:
-        tmpl = read_cfg(LosAngelse.cfg)
-        tmpl = read_cfg(R1_54014_ST5_L0_F898.000.pi, ':')
-    '''
-    cfg_dict = {}
-    for line in open(File):
-        line = line.strip()
-        c = [i.strip() for i in line.split(delimiter, 1)]  #split on the 1st occurrence of delimiter
-        if len(c) < 2 or line.startswith('%') or line.startswith('#'):
-            next #ignore commented lines or those without variables
-        else:
-            atrName  = c[0]
-            atrValue = str.replace(c[1],'\n','').split("#")[0].strip()
-            atrValue = check_variable_name(atrValue)
-            cfg_dict[atrName] = atrValue
-    return cfg_dict
+def write_h5(datasetDict, out_file, metadata=None, ref_file=None, compression=None):
+    
+    if os.path.isfile(out_file):
+        print('delete exsited file: {}'.format(out_file))
+        os.remove(out_file)
+
+    print('create HDF5 file: {} with w mode'.format(out_file))
+    with h5py.File(out_file, 'w') as f:
+        for dsName in datasetDict.keys():
+            data = datasetDict[dsName]
+            ds = f.create_dataset(dsName,
+                              data=data,
+                              compression=compression)
+        
+        for key, value in metadata.items():
+            f.attrs[key] = str(value)
+            #print(key + ': ' +  value)
+    print('finished writing to {}'.format(out_file))
+        
+    return out_file
 
 def generate_datelist_txt(date_list,txt_name):
     
@@ -58,12 +72,18 @@ def generate_datelist_txt(date_list,txt_name):
     return
 
 def cmdLineParse():
-    parser = argparse.ArgumentParser(description='InSAR troposphere correction using global atmospheric models.',\
+    parser = argparse.ArgumentParser(description='Check common busrts for TOPS data.',\
                                      formatter_class=argparse.RawTextHelpFormatter,\
                                      epilog=INTRODUCTION+'\n'+EXAMPLE)
 
-    parser.add_argument('cfg_file',help='name of the input configure file')
-    parser.add_argument('-g',  dest='generate_cfg' ,help='generate an example of configure file.')
+    #parser.add_argument('ts_file',help='input InSAR time-series file name (e.g., timeseries.h5).')
+    #parser.add_argument('geo_file',help='input geometry file name (e.g., geometryRadar.h5).')
+    parser.add_argument('sar_par', help='SLC_par file for providing orbit state paramters.')
+    parser.add_argument('--project', dest='project', choices = {'zenith','los'},default = 'los',help = 'project method for calculating the accumulated delays. [default: los]')
+    parser.add_argument('--incAngle', dest='incAngle', metavar='FILE',help='incidence angle file for projecting zenith to los, for case of PROJECT = ZENITH when geo_file does not include [incidenceAngle].')
+    parser.add_argument('--method', dest='method', choices = {'kriging','linear','cubic'},default = 'kriging',help = 'method used to interp the high-resolution map. [default: kriging]')
+    parser.add_argument('--kriging-points-numb', dest='kriging_points_numb', type=int, default=20, help='Number of the closest points used for Kriging interpolation. [default: 20]')
+    parser.add_argument('--lalo-rescale', dest='lalo_rescale', type=int, default=5, help='oversample rate of the lats and lons [default: 5]')
 
     inps = parser.parse_args()
 
@@ -72,22 +92,19 @@ def cmdLineParse():
 
 INTRODUCTION = '''
 ##################################################################################
-   Copy Right(c): 2021, Yunmeng Cao   @ICAMS v1.0 
-
-   ICAMS: InSAR tropospheric Corrections from global Atmospheric Models
-   that incorporate the Stochastic properties of the troposphere.
+   Copy Right(c): 2020, Yunmeng Cao   @icams v1.0
    
-   contact: yunmeng.cao@kaust.edu.sa
+   Correcting InSAR tropospheric delays using icams based on ERA5 reanalysis data.
 '''
 
-EXAMPLE = """
-          usage:
-                 icamsApp.py W/E/S/N SAR-image-time --date
-                 icamsApp.py W/E/S/N SAR-image-time --date-list --method pyaps
-                 icamsApp.py W/E/S/N SAR-image-time --date --model ERA5 --method icams
+EXAMPLE = """example:
+  
+  tropo_icams.py timeseries.h5 geometryRadar.h5 SAR.slc.par --lalo-rescale 10 
+  tropo_icams.py timeseries.h5 geometryRadar.h5 SAR.slc.par --project zenith
+  tropo_icams.py timeseries.h5 geometryRadar.h5 SAR.slc.par --project los --lalo-rescale 5
+  tropo_icams.py timeseries.h5 geometryRadar.h5 SAR.slc.par --project los --method linear
+  tropo_icams.py timeseries.h5 geometryRadar.h5 SAR.slc.par --project los --method kriging
 
-          example:
-                 icamsApp.py 120/122/30/34 3499 --date 20200101 --model ERA5 --method icams
   
 ###################################################################################
 """
@@ -96,211 +113,115 @@ EXAMPLE = """
 def main(argv):
     
     inps = cmdLineParse() 
-    templateContents = read_cfg(inps.cfg_file)
+    ts_file = inps.ts_file
+    geo_file = inps.geo_file
+    slc_par = inps.sar_par
     
-    if 'process_dir' in templateContents: root_dir = templateContents['process_dir']
-    else: root_dir = os.getcwd()
+    root_dir = os.getcwd()
+    icams_dir = root_dir + '/icams'
+    atm_dir = root_dir + '/icams/ERA5'
+    atm_raw_dir = root_dir + '/icams/ERA5/raw'
+    atm_sar_dir = root_dir + '/icams/ERA5/sar'
     
-    data_source = 'ERA-5 Reanalysis data of ECMWF'
-    print('')
-    print('---------------- Basic Parameters ---------------------')
-    print('Working directory: %s' % root_dir)
-    print('Data source : %s' % data_source)
-    
-    os.chdir(root_dir)
-    pyrite_dir = root_dir + '/pyrite'
-    era5_dir = root_dir + '/pyrite/ERA5'
-    era5_raw_dir = root_dir + '/pyrite/ERA5/raw'
-    era5_sar_dir = root_dir + '/pyrite/ERA5/sar'
+    if not os.path.isdir(icams_dir): os.mkdir(icams_dir)
+    if not os.path.isdir(atm_dir): os.mkdir(atm_dir)
+    if not os.path.isdir(atm_raw_dir): os.mkdir(atm_raw_dir)
+    if not os.path.isdir(atm_sar_dir): os.mkdir(atm_sar_dir)
 
-    # Get the interested data type
-    if 'interested_type' in templateContents: interested_type = templateContents['interested_type']
-    else: interested_type = 'delay'
-    print('Interested data type: %s' % interested_type)
+    meta = read_attr(ts_file)
     
     
-    if interested_type == 'delay':  inps_type = 'tzd'
-    elif interested_type == 'pwv': inps_type = 'wzd'
+    #if not os.path.isdir(gps_dir): 
+    #    os.mkdir(gps_dir)
+    #    print('Generate GPS directory: %s' % gps_dir)
+    #if not os.path.isdir(atm_dir): 
+    #    os.mkdir(atm_dir)
+    #    print('Generate GPS-atm directory: %s' % atm_dir)
     
-    if not os.path.isdir(pyrite_dir): os.mkdir(pyrite_dir)
-    if not os.path.isdir(era5_dir): os.mkdir(era5_dir)
-    if not os.path.isdir(era5_raw_dir): os.mkdir(era5_raw_dir)
-    if not os.path.isdir(era5_sar_dir): os.mkdir(era5_sar_dir)
-
-    # ------------ Get research time in seconds
-    if 'research_time' in templateContents: research_time = templateContents['research_time']
-    elif 'research_time_file' in templateContents: 
-        research_time_file = templateContents['research_time_file']
-        meta = ut.read_attr(research_time_file)
-        research_time = meta['CENTER_LINE_UTC']
-    print('Research UTC-time (s): %s' % str(research_time))
-    print('')
+    #date_list_exist = [os.path.basename(x).split('_')[5] for x in glob.glob(atm_raw_dir + '/ERA-5*.grb')]
+   
+    date_list = read_hdf5(ts_file,datasetName='date')[0]
+    date_list = date_list.astype('U13')
+    date_list = list(date_list)
     
-    # Get date_list
-    date_list = []
-    if 'date_list' in templateContents: 
-        date_list0 = templateContents['date_list']
-        date_list1 = date_list0.split(',')[:]
-        for d0 in date_list1: 
-            date_list.append(d0)
+    #date_list_download = []
+    #for i in range(len(date_list)):
+    #    if not date_list[i] in date_list_exist:
+    #        date_list_download.append(date_list[i])
+            
+    #print('---------------------------------------')
+    #print('Total number of gps data: ' + str(len(date_list)))
+    #print('Exist number of gps data: ' + str(len(date_list)-len(date_list_download)))
+    #print('Number of date to download: ' + str(len(date_list_download)))
     
-    if 'date_list_txt' in templateContents: 
-        date_list_txt = templateContents['date_list_txt']
-        date_list2 = np.loadtxt(date_list_txt,dtype=np.str)
-        date_list2 = date_list2.tolist()
-        for d0 in date_list2: 
-            date_list.append(d0)
-    
-    if 'date_list_file' in templateContents: 
-        date_list_file = templateContents['date_list_file']
-        date_list3 = ut.read_hdf5(date_list_file, datasetName = 'date')[0]
-        date_list3 = date_list3.astype('U13')
-        date_list3 = date_list3.tolist()
-        for d0 in date_list3: 
-            date_list.append(d0)
-    
-    date_list = set(date_list)
-    date_list = list(map(int, date_list))
-    date_list = sorted(date_list)
-    date_list = list(map(str, date_list))
- 
-    print('Interested date list:')
-    print('')
-    for k0 in date_list:
-        print(k0)
-    
-    # ------------ Get model parameters
-    if 'elevation_model' in templateContents: elevation_model = templateContents['elevation_model']
-    else: elevation_model = 'onn_linear'
-    
-    if 'bin_numb' in templateContents: bin_numb = templateContents['bin_numb']
-    else: bin_numb = 50    
-        
-    if 'variogram_model' in templateContents: variogram_model = templateContents['variogram_model']
-    else: variogram_model = 'spherical'    
-        
-    if 'max_length' in templateContents: max_length = templateContents['max_length']
-    else: max_length  = 250 
-          
-    # ------------ Get interpolate parameters    
-    if 'interp_method'  in templateContents: interp_method = templateContents['interp_method']
-    else: interp_method  = 'kriging'  
-        
-    if 'kriging_points_numb'  in templateContents: kriging_points_numb = templateContents['kriging_points_numb']
-    else: kriging_points_numb  = 20
-    
-    
-    # check geometry file
-    if 'geometry_file' in templateContents: 
-        geometry_file = templateContents['geometry_file']
-    else: 
-        print('')
-        print('geometry_pyrite.h5 will be used as the geometry file.')
-        geometry_file = 'geometry_pyrite.h5'
-        if not os.path.isfile(geometry_file):
-            print('Start to generate geometry_pyrite.h5')
-            if 'research_area_file' in templateContents: 
-                research_area_file = templateContents['research_area_file'] 
-                call_str = 'generate_geometry_pyrite.py --ref ' + research_area_file + ' --resolution 90 -o geometry_pyrite.h5'
-                os.system(call_str)
-            elif 'research_area' in templateContents: 
-                region_area = templateContents['research_area'] 
-                call_str = 'generate_geometry_pyrite.py --region ' + region_area + ' --resolution 90 -o geometry_pyrite.h5'
-                os.system(call_str)
-        else:
-            print('geometry_pyrite.h5 exists, skip to generate geometry file.')
-            print('')
-    # check min_altitude/ max_altitude
-    if 'min_altitude' in templateContents: min_altitude = templateContents['min_altitude'] 
-    else: min_altitude = -200
-    
-    if 'max_altitude' in templateContents: max_altitude = templateContents['max_altitude'] 
-    else: max_altitude = 5000
-        
-    # check rescale values
-    
-    if 'hgt_rescale' in templateContents: hgt_rescale = templateContents['hgt_rescale'] 
-    else: hgt_rescale = 10
-    
-    if 'lalo_rescale' in templateContents: lalo_rescale = templateContents['lalo_rescale'] 
-    else: lalo_rescale = 10 
-  
+    #if len(date_list_download) > 0:
+    #    #print('Start to download gps data...')
+    txt_download = 'datelist_download.txt'
+    generate_datelist_txt(date_list,txt_download)
     print('----------- Step 1 --------------')
     print('Start to download ERA-5 data...')
+    call_str = 'download_era5.py --region-file ' + ts_file + ' --time-file ' + ts_file + ' --date-txt ' + txt_download
+    os.system(call_str)
     
-    txt_download = 'download_datelist.txt'
-    generate_datelist_txt(date_list,txt_download)
-    
-    if 'research_area_file' in templateContents: 
-        region_file = templateContents['research_area_file'] 
-        call_str = 'download_era5.py --region-file ' + region_file + ' --time ' + research_time + ' --date-txt ' + txt_download
-        os.system(call_str)
-    elif 'research_area' in templateContents: 
-        region_area = templateContents['research_area'] 
-        call_str = 'download_era5.py --region ' + region_area + ' --time ' + research_time + ' --date-txt ' + txt_download
-        os.system(call_str)     
-    
+    #if inps.type =='tzd': 
+    #    Stype = 'Tropospheric delays'
+    #else:  
+    #    Stype = 'Atmospheric water vapor'
+    print('')
     print('----------- Step 2 --------------')
     print('Start to generate high-resolution tropospheric maps ...' )
-    print('Type of the tropospheric products: %s' % interested_type)
-    print('Minimum altitude used: %s' % str(min_altitude))
-    print('Maximum altitude used: %s' % str(max_altitude))
-    print('Height Rescale: %s' % str(hgt_rescale))
-    print('lalo rescale: %s' % str(lalo_rescale))
-    print('')
+    #print('Type of the tropospheric products: %s' % Stype)
+    #print('Elevation model: %s' % inps.elevation_model)
+    #print('Method used for interpolation: %s' % inps.interp_method)
+    if inps.method =='kriging':
+        print('Variogram model: Spherical')
+        print('Number of bins: 50')
+        #$print('Max-length used for variogram-modeling: %s' % str(inps.max_length))
         
-    print('Elevation model: %s' % elevation_model)
-    print('Method used for interpolation: %s' % interp_method)
-    if interp_method =='kriging':
-        print('Variogram model: %s' % variogram_model)
-        print('Number of bins: %s' % str(bin_numb))
-        print('Max-length used for variogram-modeling: %s' % str(max_length))
     print('')
-    
-    
     
     date_generate = []
     for i in range(len(date_list)):
-        out0 = era5_sar_dir + '/' + date_list[i] + '_' + inps_type + '.h5'
+        out0 = atm_sar_dir + '/' + date_list[i] + '_' + inps.project + '_' + inps.method + '.h5'
         if not os.path.isfile(out0):
             date_generate.append(date_list[i])
     print('Total number of data set: %s' % str(len(date_list)))          
     print('Exsit number of data set: %s' % str(len(date_list)-len(date_generate))) 
-    print('Number of high-resolution maps need to be interpolated: %s' % str(len(date_generate)))  
+    print('Number of high-resolution maps need to be generated: %s' % str(len(date_generate)))  
     
-    if len(date_generate) > 0 :
-        txt_generate = 'datelist_generate.txt'
-        generate_datelist_txt(date_generate,txt_generate)
-        call_str = 'interp_era5_pyrite_list.py ' + txt_generate  + ' ' + geometry_file + ' --type ' + inps_type + ' --method ' + interp_method + '  --kriging-points-numb ' + str(kriging_points_numb) + ' --variogram-model ' + str(variogram_model) + ' --elevation-model ' + str(elevation_model) + ' --max-length ' + str(max_length) + ' --min-altitude ' + str(min_altitude) + ' --max-altitude ' + str(max_altitude) +  ' --bin-numb ' + str(bin_numb) +  ' --hgt-rescale ' + str(hgt_rescale) +  ' --lalo-rescale ' + str(lalo_rescale)
-
-        #call_str = 'interp_era5_pyrite_list.py ' + txt_generate + ' era5_sample_variogramModel.h5 ' + inps.geo_file + ' --type ' + inps.type + ' --method ' + inps.interp_method + '  --kriging-points-numb ' + str(inps.kriging_points_numb) + ' --parallel ' + str(inps.parallelNumb)
-        os.system(call_str)
+    
+    for i in range(len(date_generate)):
         
-        
+        print('Date: ' + date_generate[i] + ' (' + str(i+1) + '/' + str(len(date_generate)) + ')')
+        call_str = 'tropo_icams_sar.py ' + geo_file + ' ' + slc_par + ' --date ' + date_generate[i] + ' --method ' + inps.method + ' --project ' + inps.project + ' --lalo-rescale ' + str(inps.lalo_rescale) + ' --kriging-points-numb ' + str(inps.kriging_points_numb)
+        os.system(call_str)        
+   
     print('')
     print('----------- Step 3 --------------')
     print('Start to generate time-series of tropospheric data ...' )
-    txt_list = 'date_list.txt'
+    txt_list = 'date_list_atm.txt'
     generate_datelist_txt(date_list,txt_list)
-    call_str = 'generate_timeseries_era5.py --date-txt ' + txt_list + ' --type ' + inps_type
+    date_list0 = [os.path.basename(k0).split('_')[0] for k0 in glob.glob(atm_sar_dir+'/*' + inps.project + '_' + inps.method + '*')]
+    date_list = sorted(set(date_list0))
+    generate_datelist_txt(date_list,txt_list)
+    
+    call_str =  'icams_timeseries.py --date-txt ' + txt_list + ' --project ' + inps.project + ' --method ' + inps.method 
     os.system(call_str)
     
     print('Done.')
     
-    #if inps.type =='tzd':
-    #    print('')
-    #    print('----------- Step 4 --------------')
-    #    print('Transfer the atmospheric delays from zenith direction to Los direction ...')
-    #    call_str = 'zenith2los_pyrite.py timeseries_pyrite_tzd_aps.h5 ' + geometry_file
-    #    os.system(call_str)
-    #    print('Done.')
-    #    print('')
-    #    print('Start to correct InSAR time-series tropospheric delays ...' )
-    #    call_str = 'diff_pyrite.py ' + inps.ts_file + ' ' + ' timeseries_pyrite_tzd_aps_los.h5 --add  -o timeseries_pyriteCor.h5'
-    #    os.system(call_str)
-    #    print('Done.')
+    print('')
+    print('----------- Step 4 --------------')
+
+    print('')
+    print('Start to correct InSAR time-series tropospheric delays ...' )
+    call_str = 'diff_icams.py ' + inps.ts_file + ' ' + ' timeseries_icams_' + inps.project + '_' + inps.method + '.h5' + ' --add  -o timeseries_icamsCor' + '_' + inps.project + '_' + inps.method + '.h5'
+    os.system(call_str)
+    print('Done.')
 
     sys.exit(1)
+
+
 ###############################################################
 
 if __name__ == '__main__':

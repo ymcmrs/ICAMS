@@ -6,14 +6,14 @@
 
 An open source module in python for InSAR troposphere Correction using global Atmospheric Models that considers the spatial Stochastic properties of the troposphere (ICAMS). We model the tropospheric parameters (P,T, and e) layer by layer along the altitude levels, and we calculate the InSAR delays along the LOS direction. ICAMS can be applied with all of the weather models (global or local). Currently, our code support to download and process [ERA5 reanalysis data](https://retostauffer.org/code/Download-ERA5/) from ECMWF. 
 
-The key steps of ICAMS can be summarized as follow:\<br>  
-step 1: Download weather model data [Make sure you have update the user.cfg file].<br>  
-Step 2: Pre-processing of GAM outputs (P-layers to H-layers)<br>  
-Step 3: Estimating LOS locations at different altitude layers [You need to input slc.par file to provide orbit data]<br>  
-Step 4: Predicting trop-parameters at LOS locations (SKlm) [Make sure you have PyKrige module available] <br>  
-Step 5: Calculating LOS delays <br>  
-Step 6: Interpolating LOS delays (SKlm) layer by layer <br>  
-Step 7: Interpolating SAR/InSAR tropospheric delays [Make sure you have download the gobal geoid data] <br>  
+The key steps of ICAMS can be summarized as follow:\
+step 1: Download weather model data [Make sure you have update the user.cfg file].\
+Step 2: Pre-processing of GAM outputs (P-layers to H-layers)\
+Step 3: Estimating LOS locations at different altitude layers [You need to input slc.par file to provide orbit data]\
+Step 4: Predicting trop-parameters at LOS locations (SKlm) [Make sure you have PyKrige module available]\ 
+Step 5: Calculating LOS delays\
+Step 6: Interpolating LOS delays (SKlm) layer by layer \
+Step 7: Interpolating SAR/InSAR tropospheric delays [Make sure you have download the gobal geoid data] \
 
 
 ICAMS is still under development, and we will keep going to make it user friendly.

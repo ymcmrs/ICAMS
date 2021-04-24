@@ -72,18 +72,21 @@ def generate_datelist_txt(date_list,txt_name):
     return
 
 def cmdLineParse():
-    parser = argparse.ArgumentParser(description='Check common busrts for TOPS data.',\
+    parser = argparse.ArgumentParser(description='InSAR troposphere correction using ICAMS.',\
                                      formatter_class=argparse.RawTextHelpFormatter,\
                                      epilog=INTRODUCTION+'\n'+EXAMPLE)
 
-    #parser.add_argument('ts_file',help='input InSAR time-series file name (e.g., timeseries.h5).')
-    #parser.add_argument('geo_file',help='input geometry file name (e.g., geometryRadar.h5).')
+
+    parser.add_argument('corners', help='research area in degree. w/e/n/s')
     parser.add_argument('sar_par', help='SLC_par file for providing orbit state paramters.')
-    parser.add_argument('--project', dest='project', choices = {'zenith','los'},default = 'los',help = 'project method for calculating the accumulated delays. [default: los]')
-    parser.add_argument('--incAngle', dest='incAngle', metavar='FILE',help='incidence angle file for projecting zenith to los, for case of PROJECT = ZENITH when geo_file does not include [incidenceAngle].')
-    parser.add_argument('--method', dest='method', choices = {'kriging','linear','cubic'},default = 'kriging',help = 'method used to interp the high-resolution map. [default: kriging]')
-    parser.add_argument('--kriging-points-numb', dest='kriging_points_numb', type=int, default=20, help='Number of the closest points used for Kriging interpolation. [default: 20]')
-    parser.add_argument('--lalo-rescale', dest='lalo_rescale', type=int, default=5, help='oversample rate of the lats and lons [default: 5]')
+    parser.add_argument('--date-list', dest='date_list', nargs='*',help='date list to extract.')
+    parser.add_argument('--date-txt', dest='date_txt',help='date list text to extract.')
+    parser.add_argument('--date-file', dest='date_file',help='mintPy formatted h5 file, which contains date infomration.')
+    
+    #parser.add_argument('--project', dest='project', choices = {'zenith','los'},default = 'los',help = 'project method for calculating the accumulated delays. [default: los]')
+    #parser.add_argument('--method', dest='method', choices = {'sklm','linear','cubic'},default = 'sklm',help = 'method used to interp the high-resolution map. [default: kriging]')
+    #parser.add_argument('--sklm-points-numb', dest='sklm_points_numb', type=int, default=20, help='Number of the closest points used for sklm interpolation. [default: 20]')
+    #parser.add_argument('--lalo-rescale', dest='lalo_rescale', type=int, default=5, help='oversample rate of the lats and lons [default: 5]')
 
     inps = parser.parse_args()
 
@@ -94,16 +97,16 @@ INTRODUCTION = '''
 ##################################################################################
    Copy Right(c): 2020, Yunmeng Cao   @icams v1.0
    
-   Correcting InSAR tropospheric delays using icams based on ERA5 reanalysis data.
+   InSAR tropospheric correction based on ICAMS.
 '''
 
 EXAMPLE = """example:
   
-  tropo_icams.py timeseries.h5 geometryRadar.h5 SAR.slc.par --lalo-rescale 10 
-  tropo_icams.py timeseries.h5 geometryRadar.h5 SAR.slc.par --project zenith
-  tropo_icams.py timeseries.h5 geometryRadar.h5 SAR.slc.par --project los --lalo-rescale 5
-  tropo_icams.py timeseries.h5 geometryRadar.h5 SAR.slc.par --project los --method linear
-  tropo_icams.py timeseries.h5 geometryRadar.h5 SAR.slc.par --project los --method kriging
+  icamsApp.py timeseries.h5 geometryRadar.h5 SAR.slc.par --lalo-rescale 10 
+  icamsApp.py timeseries.h5 geometryRadar.h5 SAR.slc.par --project zenith
+  icamsApp.py timeseries.h5 geometryRadar.h5 SAR.slc.par --project los --lalo-rescale 5
+  icamsApp.py timeseries.h5 geometryRadar.h5 SAR.slc.par --project los --method linear
+  icamsApp.py timeseries.h5 geometryRadar.h5 SAR.slc.par --project los --method kriging
 
   
 ###################################################################################

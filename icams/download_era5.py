@@ -9,7 +9,7 @@ import os
 import sys
 import numpy as np
 import argparse
-from pyrite import _utils as ut
+from icams import _utils as ut
 import glob
 
 def is_number(s):
@@ -271,16 +271,16 @@ def main(argv):
     inps = cmdLineParse()
     root_dir = os.getcwd()
     
-    pyrite_dir = root_dir + '/pyrite'
-    era5_dir = pyrite_dir + '/ERA5'
+    icams_dir = root_dir + '/icams'
+    era5_dir = icams_dir + '/ERA5'
     raw_dir = era5_dir + '/raw'
     sar_dir = era5_dir + '/sar'
     
     
-    if not os.path.isdir(pyrite_dir):
-        print('pyrite folder is not found under the corrent directory.')
-        print('Generate folder: %s' % pyrite_dir)
-        os.mkdir(pyrite_dir)
+    if not os.path.isdir(icams_dir):
+        print('icams folder is not found under the corrent directory.')
+        print('Generate folder: %s' % icams_dir)
+        os.mkdir(icams_dir)
     if not os.path.isdir(era5_dir):
         print('ERA5 folder is not found under the corrent directory.')
         print('Generate folder: %s' % era5_dir)

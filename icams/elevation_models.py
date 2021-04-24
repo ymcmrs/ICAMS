@@ -1,10 +1,9 @@
 #! /usr/bin/env python
 #################################################################
-###  This program is part of PyRite  v1.0                     ### 
-###  Copy Right (c): 2019, Yunmeng Cao                        ###  
+###  This program is part of icams  v1.0                      ### 
+###  Copy Right (c): 2020, Yunmeng Cao                        ###  
 ###  Author: Yunmeng Cao                                      ###                                                          
-###  Email : ymcmrs@gmail.com                                 ###
-###  Univ. : King Abdullah University of Science & Technology ###   
+###  Email : ymcmrs@gmail.com                                 ### 
 #################################################################
 
 from __future__ import absolute_import
@@ -15,10 +14,8 @@ from __future__ import unicode_literals
 import numpy as np
 
 __doc__ = """
-PyRite
+ICAMS
 =======
-
-Code by Yunmeng Cap and the GigPy Developers
 ymcmrs@gmail.com
 
 Summary
@@ -26,12 +23,8 @@ Summary
 Function definitions for elevation-correlated tropospheric models. In each function, m is a list of
 defining parameters and d is an array of the elevation values at which to
 calculate the elevation model.
-
-References
-----------
-.. [1] Y.M., Cao, et al., 2019, under preparing.
        
-Copyright (c) 2019, PyRite Developers
+Copyright (c) 2020, ICAMS Developers
 """
 
 

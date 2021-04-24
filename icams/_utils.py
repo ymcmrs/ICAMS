@@ -3,7 +3,7 @@
 # Copyright 2019 Yunmeng Cao                               #
 # Contact: ymcmrs@gmail.com                                #
 ############################################################
-# This program is modified from some sub-scripts of PyAPS                      
+# Part of the program is modified from PyAPS                      
 # Copyright 2012, by the California Institute of Technology
 # Contact: earthdef@gps.caltech.edu                        
 # Modified by A. Benoit and R. Jolivet 2019                

@@ -8,7 +8,7 @@ An open source module in python for InSAR troposphere Correction using global At
 
 The key steps of ICAMS can be summarized as follow: <br> 
 
-step 1: Download weather model data [Make sure you have update the user.cfg file].\
+step 1: Download weather model data [Make sure you have updated the user.cfg file].\
 Step 2: Pre-processing of GAM outputs (P-layers to H-layers)\
 Step 3: Estimating LOS locations at different altitude layers [You need to input slc.par file to provide orbit data] \
 Step 4: Predicting trop-parameters at LOS locations (SKlm) [Make sure you have [PyKrige](https://pypi.org/project/PyKrige/) module available] \

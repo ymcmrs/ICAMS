@@ -8,6 +8,65 @@ An open source module in python for InSAR troposphere Correction using global At
 
 This is research code provided to you "as is" with NO WARRANTIES OF CORRECTNESS. Use at your own risk.
 
+### 1 Download
+
+Download the development version using git:   
+   
+    cd ~/python
+    git clone https://github.com/ymcmrs/ICAMS
+    
+    
+### 2 Installation
+
+ 1） To make icams importable in python, by adding the path ICAMS directory to your $PYTHONPATH
+     For csh/tcsh user, add to your **_~/.cshrc_** file for example:   
+
+    ############################  Python  ###############################
+    if ( ! $?PYTHONPATH ) then
+        setenv PYTHONPATH ""
+    endif
+    
+    ##--------- Anaconda ---------------## 
+    setenv PYTHON3DIR    ~/python/anaconda3
+    setenv PATH          ${PATH}:${PYTHON3DIR}/bin
+    
+    ##--------- PyINT ------------------## 
+    setenv ICAMS_HOME    ~/python/PyINT       
+    setenv PYTHONPATH    ${PYTHONPATH}:${ICAMS_HOME}
+    setenv PATH          ${PATH}:${ICAMS_HOME}/icams
+    
+ 2) Install dependencies
+    
+    $CONDA_PREFIX/bin/pip install git+https://github.com/ymcmrs/PyKrige.git
+    $CONDA_PREFIX/bin/pip install git+https://github.com/ymcmrs/elevation.git
+    
+ 3） Install gdal, elevation module using pip or conda for DEM processing.
+ 
+ 4) download global geoid model (e.g., egm2008-1.pgm) and change the default geoid-data path in geoid.py
+
+### 2 Running ICAMS
+
+1). Zenith delay products generation (all you need to provide are region + imaging-time)
+
+     tropo_icams_date.py  or  tropo_icams_date_list.py
+  
+     e.g. :
+        tropo_icams_date.py 20201024 --region " 172.8/173.8/-42.6/-41.6 " --imaging-time 11:24 
+        tropo_icams_date.py --date-list 20201024 20201023 20201025 20201026 --region " 172.8/173.8/-42.6/-41.6 " --imaging-time 11:24 --parallel 4 
+
+2) InSAR correction. (if you are a MintPy user)
+     
+     tropo_icams_sar.py  or  tropo_icams.py
+     
+     e.g. :
+        tropo_icams_sar.py geometryRadar.h5 --date 20180101 
+        tropo_icams.py timeseries.h5 geometryRadar.h5 --project zenith --method sklm
+        tropo_icams.py timeseries.h5 geometryRadar.h5 --sar-par 20181025.slc.par --project los --method sklm    (if you are a GAMMA user)
+        
+2) icamsApp.py  (still under development)
+    
+        
+
 The key steps of ICAMS can be summarized as follow: <br> 
 
 step 1: Download weather model data [Make sure you have updated the user.cfg file].\

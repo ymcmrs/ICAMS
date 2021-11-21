@@ -37,8 +37,8 @@ Download the development version using git:
     
  2) Install dependencies
     
-    $CONDA_PREFIX/bin/pip install git+https://github.com/ymcmrs/PyKrige.git
-    $CONDA_PREFIX/bin/pip install git+https://github.com/ymcmrs/elevation.git
+    $CONDA_PREFIX/bin/pip install git+https://github.com/ymcmrs/PyKrige.git   
+    $CONDA_PREFIX/bin/pip install git+https://github.com/ymcmrs/elevation.git 
     
  3） Install gdal, elevation module using pip or conda for DEM processing.
  

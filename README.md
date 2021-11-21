@@ -71,9 +71,9 @@ Download the development version using git:
 
 ### 3 Citation
     
- If you find our research helpful or use our toolbox, please cite the following paper:
+ If you use our toolbox or if you find our research helpful, please cite the following paper (Thanks for your support):
 
 Cao, Y., Jónsson, S. and Li, Z., 2021. Advanced InSAR tropospheric Corrections from global atmospheric models that incorporate spatial stochastic properties of the troposphere. Journal of Geophysical Research: Solid Earth, 126(5), p.e2020JB020952.
     
-Thanks for your support! 
+ Any feedback are welcome!
 

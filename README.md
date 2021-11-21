@@ -40,9 +40,7 @@ Download the development version using git:
     $CONDA_PREFIX/bin/pip install git+https://github.com/ymcmrs/PyKrige.git   
     $CONDA_PREFIX/bin/pip install git+https://github.com/ymcmrs/elevation.git 
     
- 3）Install gdal, elevation module using pip or conda for DEM processing. 
- 
- 4) Download global geoid model (e.g., egm2008-1.pgm) and change the default geoid-data path in geoid.py
+ 3）Install gdal and download global geoid model (e.g., egm2008-1.pgm, need to change the default geoid-data path in geoid.py) 
 
 ### 2 Running ICAMS
 

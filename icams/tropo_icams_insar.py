@@ -22,11 +22,11 @@ INTRODUCTION = '''
 
 EXAMPLE = '''
     Usage: 
-            tropo_icams_insar.py unwrapIfgram.h5 geometryRadar.h5 master.slc.par -n 1
-            tropo_icams_insar.py unwrapIfgram.h5 geometryRadar.h5 master.slc.par --project los 
-            tropo_icams_insar.py unwrapIfgram.h5 geometryRadar.h5 master.slc.par --method sklm
-            tropo_icams_insar.py unwarpIfgram.h5 geometryRadar.h5 master.slc.par --lalo-rescale 10
-            tropo_icams_insar.py unwarpIfgram.h5 geometryRadar.h5 master.slc.par --sklm-points-numb 20
+            tropo_icams_insar.py unwrapIfgram.h5 geometryRadar.h5 --sar-par master.slc.par -n 1
+            tropo_icams_insar.py unwrapIfgram.h5 geometryRadar.h5 --sar-par  --project los 
+            tropo_icams_insar.py unwrapIfgram.h5 geometryRadar.h5 --project zenith --method sklm
+            tropo_icams_insar.py unwarpIfgram.h5 geometryRadar.h5 --lalo-rescale 10
+            tropo_icams_insar.py unwarpIfgram.h5 geometryRadar.h5 --sklm-points-numb 20
             
 -------------------------------------------------------------------  
 '''
@@ -38,11 +38,11 @@ def cmdLineParse():
 
     parser.add_argument('unwrapIfgram',help='MintPy unwrapIfgram h5 file.')
     parser.add_argument('geo_file',help='input geometry file name (e.g., geometryRadar.h5).')
-    parser.add_argument('sar_par', help='SLC_par file for providing orbit state paramters.')  
+    parser.add_argument('--sar-par', dest='sar_par', help='SLC_par file for providing orbit state paramters.')  
     parser.add_argument('--numb',dest='numb',type=int, default=0, help='number of the interferogram.')
     parser.add_argument('--all', dest='all', action='store_true', help='Correction for all of the interferogram.')
     parser.add_argument('--method', dest='method', choices = {'sklm','linear','cubic'},default = 'sklm',help = 'method used to interp the high-resolution map. [default: sklm]')
-    parser.add_argument('--project', dest='project', choices = {'zenith','los'},default = 'los',help = 'project method for calculating the accumulated delays. [default: los]')
+    parser.add_argument('--project', dest='project', choices = {'zenith','los'},default = 'zenith',help = 'project method for calculating the accumulated delays. [default: los]')
     parser.add_argument('--incAngle', dest='incAngle', metavar='FILE',help='incidence angle file for projecting zenith to los, for case of PROJECT = ZENITH when geo_file does not include [incidenceAngle].')
     parser.add_argument('--lalo-rescale', dest='lalo_rescale', type=int, default=5, help='oversample rate of the lats and lons [default: 5]')
     parser.add_argument('--sklm-points-numb', dest='sklm_points_numb', type=int, default=15, help='Number of the closest points used for sklm interpolation. [default: 15]')

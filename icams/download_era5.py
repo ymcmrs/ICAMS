@@ -260,8 +260,8 @@ EXAMPLE = '''Examples:
     download_era5.py --region-file timeseries.h5 --time-file velocity.h5 --date-file timeseries.h5
     download_era5.py --region-file timeseries.h5 --time-file velocity.h5 --date-list 20180101 20180102
     
-    download_era5.py --region-file 122/124/33/35 --time-file velocity.h5 --date-file timeseries.h5
-    download_era5.py --region-file 122/124/33/35 --time 49942 --date-file timeseries.h5
+    download_era5.py --region-file geo_velocity.h5 --time-file velocity.h5 --date-file timeseries.h5
+    download_era5.py --region-file geometryRadar.h5 --time 49942 --date-file timeseries.h5
     
 '''    
 ##################################################################################################   
@@ -347,18 +347,6 @@ def main(argv):
     print('')
     
     ut.ECMWFdload(date_list_download, hour, era5_dir, model='ERA5', snwe=snwe, flist = flist_download)
-    
-    #s,n,w,e = snwe
-    #if not os.path.isfile('geometry_era5.h5'):
-    #    print('')
-    #    print('Start to generate the geometry file over the EAR5-data region...')
-    #    AREA = '" ' + str(w - 0.1) + '/'  + str(e + 0.1) + '/' + str(s - 0.1) + '/' + str(n + 0.1) + ' "'
-    #    #print(AREA)
-    #    call_str = 'generate_geometry_era5.py --region ' + AREA + ' --resolution 10000 -o geometry_era5.h5'
-    #    os.system(call_str)
-    #else:
-    #    print('geometry_ear5.h5 exist.')
-    #    print('skip the step of generating the geometry file.')
     
     print('Done.')     
     sys.exit(1)        

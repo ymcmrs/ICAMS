@@ -34,10 +34,13 @@ from scipy import interpolate
 import pygrib
 import numpy as np
 import h5py
+from skimage import io
 
 import pyproj
 
 from icams.geoid import GeoidHeight as gh # calculating geoid height
+
+from math import radians, cos, sin, asin, sqrt
 
 ######Set up variables in model.cfg before using
 dpath = os.path.dirname(__file__)
@@ -951,6 +954,7 @@ def orb_state_lalo_uLOS(lat0,lon0,orb_data,attr):
 
 def get_sar_area(attr):
     
+    meta = attr
     length, width = int(attr['LENGTH']), int(attr['WIDTH'])
     if 'Y_FIRST' in attr.keys():
         # geo coordinates
@@ -1035,7 +1039,48 @@ def get_uLOS_llh(lat0,lon0,hgt_lvs,uLOS):
     
     return losX,losY,losZ, latH, lonH, losH
 
+
+def read_demtif(dem_tif):
     
+    call_str = 'gdalinfo ' + dem_tif + ' >ttt'     
+    os.system(call_str)
+    
+    f = open('ttt')    
+    for line in f:
+        if 'Origin =' in line:
+            STR1 = line
+            AA = STR1.split('Origin =')[1]
+            Corner_LON = AA.split('(')[1].split(',')[0]
+            Corner_LAT = AA.split('(')[1].split(',')[1].split(')')[0]
+        elif 'Pixel Size ' in line:
+            STR2 = line
+            AA = STR2.split('Pixel Size =')[1]
+            Post_LON = AA.split('(')[1].split(',')[0]
+            Post_LAT = AA.split('(')[1].split(',')[1].split(')')[0]
+        
+        elif 'Size is' in line:
+            STR3 = line
+            AA =STR3.split('Size is')[1]
+            WIDTH = AA.split(',')[0]
+            FILE_LENGTH = AA.split(',')[1]
+            FILE_LENGTH = FILE_LENGTH.split('\n')[0]
+    f.close()
+    
+    dem_data = io.imread(dem_tif)
+    if dem_data.dtype=='float32':
+        DATA_FORMAT='REAL*4'
+    else: 
+        DATA_FORMAT='INTEGER*2'
+    
+    attr = dict()
+    attr['WIDTH'] = WIDTH
+    attr['LENGTH'] = FILE_LENGTH
+    attr['X_STEP'] = Post_LON
+    attr['Y_STEP'] = Post_LAT
+    attr['X_FIRST'] = Corner_LON
+    attr['Y_FIRST'] = Corner_LAT
+    return dem_data, attr
+
 def get_LOS3D_coords(latlist,lonlist,hgt_lvs, orb_data,attr):
     
     width = int(attr['WIDTH'])
@@ -1108,7 +1153,7 @@ def get_LOS_parameters(latlist,lonlist,Presi,Tempi,Vpri,latH, lonH, method,krigi
         Vpri00 = Vpri[:,:,i]
         Vpri0 = Vpri00.flatten()
         
-        if method =='kriging':
+        if method =='sklm':
             Vpri0_cor, para, corr= remove_ramp(lat00,lon00,Vpri0)
             trend = func_trend_model(lat,lon,para)
         
@@ -1292,7 +1337,7 @@ def interp2d_levels(lonlos,latlos,hgtlvs,delaylos,attr, maxdem, mindem, Rescale)
 
 def icams_griddata_los(lonlos,latlos,hgtlvs,ddrylos,dwetlos,attr, maxdem, mindem, Rescale,method,kriging_points_numb):
     
-    if method =='kriging':
+    if method =='sklm':
         dwet_intp, lonvv, latvv, hgtuse = kriging_levels(lonlos,latlos,hgtlvs,dwetlos,attr, maxdem, mindem, Rescale,kriging_points_numb)
     else:
         dwet_intp, lonvv, latvv, hgtuse = interp2d_levels(lonlos,latlos,hgtlvs,dwetlos,attr, maxdem, mindem, Rescale)
@@ -1434,7 +1479,7 @@ def interp2d_levels_zenith(lonlist,latlist,hgtlvs,delaylos,attr, maxdem, mindem,
 
 def icams_griddata_zenith(lonlist,latlist,hgtlvs,ddrylos,dwetlos,attr, maxdem, mindem, Rescale,method,kriging_points_numb):
     
-    if method =='kriging':
+    if method =='sklm':
         dwet_intp, lonvv, latvv, hgtuseful = kriging_levels_zenith(lonlist,latlist,hgtlvs,dwetlos,attr, maxdem, mindem, Rescale,kriging_points_numb)
     else:
         dwet_intp, lonvv, latvv, hgtuse = interp2d_levels_zenith(lonlist,latlist,hgtlvs,dwetlos,attr, maxdem, mindem, Rescale)
@@ -1520,3 +1565,19 @@ def losPTV2del(Presi,Tempi,Vpri,losHgt,cdict,verbose=False):
             DWet2[i,j,:]  = DWet2[i,j,:] - DWet2[i,j,-1]
 
     return DDry2,DWet2
+
+def haversine(lon1, lat1, lon2, lat2):
+    """
+    Calculate the great circle distance between two points 
+    on the earth (specified in decimal degrees)
+    """
+    # convert decimal degrees to radians 
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+    # haversine formula 
+    dlon = lon2 - lon1 
+    dlat = lat2 - lat1 
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a)) 
+    # Radius of earth in kilometers is 6371
+    km = 6371* c
+    return km

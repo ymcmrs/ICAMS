@@ -77,7 +77,7 @@ class GeoidHeight(object):
         ( 18,  -36,    2,   0,  -66,  -51, 0,   0,  102,  31),
     )
 
-    def __init__(self, name="/Users/caoy0a/Documents/geoids/egm2008-1.pgm"):
+    def __init__(self, name="/Users/yunmengcao/Documents/development/geoid/egm2008-1.pgm"):
         self.offset = None
         self.scale = None
 

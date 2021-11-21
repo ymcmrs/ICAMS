@@ -101,6 +101,18 @@ def get_meta_corner(meta):
     
     return WEST,SOUTH,EAST,NORTH
 
+def read_region(STR):
+    WEST = STR.split('/')[0]
+    EAST = STR.split('/')[1].split('/')[0]
+    
+    SOUTH = STR.split(EAST+'/')[1].split('/')[0]
+    NORTH = STR.split(EAST+'/')[1].split('/')[1]
+    
+    WEST =float(WEST)
+    SOUTH=float(SOUTH)
+    EAST=float(EAST)
+    NORTH=float(NORTH)
+    return WEST,SOUTH,EAST,NORTH
 
 def era5_time(research_time0):
     
@@ -247,20 +259,41 @@ def read_par_orb(slc_par):
     #Z_Orb = Orb[:,3]
     return orb_data
 
+def hour2seconds(hour0):
+    
+    hh = hour0.split(':')[0]
+    mm = hour0.split(':')[1]
+    
+    seconds = float(hh)*3600 + float(mm)*60
+    
+    return seconds
+
+def resamp_dem(dem_data,dem_attr,resolution,wsen):
+    
+    dr = float(resolution)/1000
+    lat1 = float(dem_attr['Y_FIRST']); lon1 = float(dem_attr['X_FIRST'])
+    lat2 = lat1 + 0.1; lon2 = lon1; dy = ut.haversine(lon1, lat1, lon2, lat2); y_step =  -dr/dy*0.1
+    lat2 = lat1; lon2 = lon1+0.1; dx = ut.haversine(lon1, lat1, lon2, lat2); x_step =  dr/dx*0.1 
+    
+    w,s,e,n = wsen; lala = np.arange(n-y_step, s, y_step); lolo = np.arange(w+y_step, e, x_step)
+    lons,lats = np.meshgrid(lolo,lala);  lats0,lons0 = ut.get_lat_lon(dem_attr); lons0 =lons0.flatten(); lats0 = lats0.flatten()
+    points_all = np.zeros((len(lons0),2),dtype='float32'); points_all[:,0] = lons0; points_all[:,1] = lats0
+    
+    dems = griddata(points_all, dem_data.flatten(), (lons, lats), method='nearest')
+    return dems, lats, lons, y_step, x_step
     
 def cmdLineParse():
     parser = argparse.ArgumentParser(description='Generating high-resolution tropospheric delay map using icams.',\
                                      formatter_class=argparse.RawTextHelpFormatter,\
                                      epilog=INTRODUCTION+'\n'+EXAMPLE)
 
-    parser.add_argument('geo_file',help='input geometry file name (e.g., geometryRadar.h5).')
-    parser.add_argument('--sar_par', dest='sar_par', help='SLC_par file for providing orbit state paramters.')
-    parser.add_argument('--date', dest='date', help = 'SAR acquisition time for generating the delay maps.')
-    parser.add_argument('--method', dest='method', choices = {'sklm','linear','cubic'},default = 'sklm',help = 'method used to interp the high-resolution map. [default: kriging]')
-    parser.add_argument('--project', dest='project', choices = {'zenith','los'},default = 'zenith',help = 'project method for calculating the accumulated delays. [default: los]')
-    parser.add_argument('--incAngle', dest='incAngle', metavar='FILE',help='incidence angle file for projecting zenith to los, for case of PROJECT = ZENITH when geo_file does not include [incidenceAngle].')
-    parser.add_argument('--lalo-rescale', dest='lalo_rescale', type=int, default=5, help='oversample rate of the lats and lons [default: 5]')
-    parser.add_argument('--sklm-points-numb', dest='sklm_points_numb', type=int, default=15, help='Number of the closest points used for Kriging interpolation. [default: 15]')
+    
+    parser.add_argument('date', type= str, help = 'SAR acquisition time for generating the delay maps. e.g., 20201024')
+    parser.add_argument('--region','-r',dest='region', help='research area in degree. w/e/n/s')
+    parser.add_argument('--imaging-time','-t',dest='time', type = str, help='interested SAR-imaging UTC-time. e.g., 12:30')
+    parser.add_argument('--reference-file', dest='reference_file', help = 'Reference file used to provide region/imaging-time information. e.g., velocity.h5 from MintPy') 
+    parser.add_argument('--resolution',dest='resolution',type = float, default =100.0, help='resolution (m) of delay map.')
+    parser.add_argument('--dem-tif', dest='dem_tif', help = 'DEM file (e.g., dem.tif). The coverage should be bigger or equal to the region of interest, if no DEM file provided, it will be downloaded automatically.') 
     parser.add_argument('-o','--out', dest='out_file', metavar='FILE',help='name of the prefix of the output file')
        
     inps = parser.parse_args()
@@ -270,18 +303,17 @@ def cmdLineParse():
 
 INTRODUCTION = '''
 ##################################################################################
-   Copy Right(c): 2020, Yunmeng Cao   @icams v1.0
+   Copy Right(c): 2021, Yunmeng Cao   @icams v2.0
    
    Generate InSAR tropospheric delays using ERA5 based on icams.
 '''
 
 EXAMPLE = """Example:
   
-  tropo_icams_sar.py geometryRadar.h5 --sar-par master.slc.par --project los -o 20190101_icams.h5
-  tropo_icams_sar.py geometryRadar.h5 --date 20180101 
-  tropo_icams_sar.py geometryRadar.h5 --date 20180101 --project zenith --method sklm 
-  tropo_icams_sar.py geometryRadar.h5 --date 20180101 --project zenith --method linear 
-  tropo_icams_sar.py geometryRadar.h5 --date 20180101 --project zenith --method linear --out 20180101_icams.h5
+  tropo_icams_date.py 20201024 --region " 172.8/173.8/-42.6/-41.6 " --imaging-time 11:24 --resolution 200.0 
+  tropo_icams_date.py 20201024 --region " 172.8/173.8/-42.6/-41.6 " --imaging-time 13:06 --dem-tif /Download/dem.tif
+  tropo_icams_date.py 20201024 --reference-file velocity.h5 --dem-tif /Download/dem.tif
+  
 
 ###################################################################################
 """
@@ -291,87 +323,78 @@ EXAMPLE = """Example:
 def main(argv):
     
     inps = cmdLineParse()
+    date = inps.date
     
-    geo_file = inps.geo_file
-    datasetNames = ut.get_dataNames(geo_file)
-    meta = ut.read_attr(geo_file) 
-    if 'latitude' in datasetNames: 
-        lats = ut.read_hdf5(geo_file,datasetName='latitude')[0]
-        lons = ut.read_hdf5(geo_file,datasetName='longitude')[0]
-    else:
-        lats,lons = ut.get_lat_lon(meta)  
-    heis = ut.read_hdf5(geo_file,datasetName='height')[0]    
-    
-    if inps.project =='los':
-        slc_par  = inps.sar_par
-        orb_data = read_par_orb(slc_par)
-        
-    attr = ut.read_attr(geo_file)
-    date0 = ut.read_gamma_par(slc_par,'read', 'date')
-    date = str(int(date0.split(' ')[0])) + str(int(date0.split(' ')[1])) + str(int(date0.split(' ')[2]))
-    
-    if inps.date: date = inps.date
-    
-    start_sar = ut.read_gamma_par(slc_par,'read', 'start_time')
-    earth_R = ut.read_gamma_par(slc_par,'read', 'earth_radius_below_sensor')
-    end_sar = ut.read_gamma_par(slc_par,'read', 'end_time')
-    cent_time = ut.read_gamma_par(slc_par,'read', 'center_time')
-    
-    attr['EARTH_RADIUS'] = str(float(earth_R.split('m')[0]))
-    attr['END_TIME'] = str(float(end_sar.split('s')[0]))
-    attr['START_TIME'] = str(float(start_sar.split('s')[0]))
-    attr['DATE'] = date
-    attr['CENTER_TIME'] = str(float(cent_time.split('s')[0]))
-
     root_path = os.getcwd()
     icams_dir = root_path + '/icams'
-    era5_dir = icams_dir + '/ERA5'
-    era5_raw_dir = era5_dir  + '/raw'
-    era5_sar_dir =  era5_dir  + '/sar'
-
     if not os.path.isdir(icams_dir): os.mkdir(icams_dir)
+    era5_dir = icams_dir + '/ERA5'
     if not os.path.isdir(era5_dir): os.mkdir(era5_dir)
+    era5_raw_dir = era5_dir  + '/raw'
     if not os.path.isdir(era5_raw_dir): os.mkdir(era5_raw_dir)
+    era5_sar_dir =  era5_dir  + '/sar'
     if not os.path.isdir(era5_sar_dir): os.mkdir(era5_sar_dir)
+    dem_dir = icams_dir + '/dem'
     
-    if inps.out_file: OUT = inps.out_file
-    else: OUT = date + '_' + inps.project + '_' + inps.method + '.h5'
-   
-    OUT = era5_sar_dir + '/' + OUT
+    if inps.reference_file:
+        ref0 = inps.reference_file
+        attr = ut.read_attr(ref0)
+        w,s,e,n = get_meta_corner(attr)
+        wsen = (w,s,e,n)   
+        if 'CENTER_LINE_UTC' in attr:
+            cent_time = attr['CENTER_LINE_UTC']
+        else:
+            cent_time = '43200'   # 12:00
+    else:
+        region0 = inps.region
+        w,s,e,n = read_region(region0)
+        wsen = (w,s,e,n)   
+        cent_time = hour2seconds(inps.time)
+    
+    
+    if inps.dem_tif:
+        dem0 = inps.dem_tif
+    else:
+        if not os.path.isdir(dem_dir):
+            os.mkdir(dem_dir)
+        os.chdir(dem_dir)
+        call_str = 'eio --product SRTM1 clip -o dem.tif --bounds ' + str(w + 0.1) + ' ' + str(s+0.1) + ' ' + str(e+0.1) + ' ' + str(n+0.1)
+        print(call_str)
+        os.system(call_str)
+        dem0 = dem_dir + '/dem.tif'
+    
+    dem_data, dem_attr = ut.read_demtif(dem0)
+    heis, lats, lons, lat_step, lon_step = resamp_dem(dem_data,dem_attr,inps.resolution,wsen)
+    LENGTH,WIDTH = heis.shape
+    
     cdic = ut.initconst()
-    fname_list = glob.glob(era5_raw_dir + '/ERA*' + date0 + '*')    
-    w,s,e,n = get_meta_corner(attr)
-    wsen = (w,s,e,n)    
+    fname_list = glob.glob(era5_raw_dir + '/ERA*' + date + '*')    
     snwe = get_snwe(wsen, min_buffer=0.5, multi_1=True)
     area = snwe2str(snwe)
-    hour = era5_time(attr['CENTER_TIME'])
+    hour = era5_time(cent_time)
+    
+    fname = get_fname_list([date],area,hour)
+    print(fname)
+    fname0 = os.path.join(era5_raw_dir, fname[0])
+    ERA5_file = era5_raw_dir + '/' + fname[0]
+    print(ERA5_file)
+    cdic = ut.initconst()
     
     ##### step1 : check ERA5 file
-    #if len(fname_list) > 0:
-    #    ERA5_file = fname_list[0]
-
-    if len(fname_list) < 1:
+    if not os.path.isfile(ERA5_file):
         fname = get_fname_list([date],area,hour)
         fname0 = os.path.join(era5_raw_dir, fname[0])
         ut.ECMWFdload([date],hour,era5_raw_dir,model='ERA5',snwe=snwe,flist=[fname0])
-        ERA5_file = era5_raw_dir + '/' + fname[0]
+    
        
     ##### step2 : read ERA5 data
     lvls,latlist,lonlist,gph,tmp,vpr = ut.get_ecmwf('ERA5',ERA5_file,cdic, humidity='Q')
     mean_lon = np.mean(lonlist.flatten())
     if mean_lon > 180:    
         lonlist = lonlist - 360.0 # change to insar format lon [-180, 180]
-        #lonlist = np.asarray(lonlist)
-    #### step3: calculate delay    
-    #where_are_NaNs = isnan(lats)
-    #lats[where_are_NaNs] = 0
-    #lons[where_are_NaNs] = 0
-    
-    #where_are_NaNs = isnan(lons)
-    #lats[where_are_NaNs] = 0
-    #lons[where_are_NaNs] = 0    
-    lats0 = lats.flatten()
-    lons0 = lons.flatten()
+  
+    lats0 = lats.flatten(); Y_FIRST = np.max(lats0)
+    lons0 = lons.flatten(); X_FIRST = np.min(lons0)
     mean_geoid = ut.get_geoid_point(np.nanmean(lats0),np.nanmean(lons0))
     print('Average geoid height: ' + str(mean_geoid))
     heis = heis + mean_geoid # geoid correct
@@ -404,78 +427,54 @@ def main(argv):
     lat_intp_binary = era5_dir + '/lat_intp.npy'
     lon_intp_binary = era5_dir + '/lon_intp.npy'
     los_intp_binary = era5_dir + '/los_intp.npy'
-    if inps.project =='los':
-        # calc los coords
-        #print('Start to calc LOS locations ...')
-        if not os.path.isfile(lat_intp_binary):
-            lat_intp, lon_intp, los_intp = ut.get_LOS3D_coords(latlist,lonlist,hgtlvs, orb_data, attr)
-            np.save(lat_intp_binary, lat_intp); np.save(lon_intp_binary, lon_intp); np.save(los_intp_binary, los_intp)
-        else:
-            lat_intp = np.load(lat_intp_binary);lon_intp = np.load(lon_intp_binary);los_intp = np.load(los_intp_binary)
- 
-        # get los locations atmospheric paramters
-        #print('Start to calc LOS atmospheric parameters ...')
-        LosP,LosT,LosV = ut.get_LOS_parameters(latlist,lonlist,Presi,Tempi,Vpri,lat_intp, lon_intp,inps.method,inps.sklm_points_numb)
-        # calc los delays
-        #print('Start to calculate LOS delays ...')
-        ddrylos,dwetlos = ut.losPTV2del(LosP,LosT,LosV,los_intp ,cdic,verbose=False)
-        # interp grid delays
-        print('Start to interpolate delays ...')
-        dwet_intp,ddry_intp, lonvv, latvv, hgtuse = ut.icams_griddata_los(lon_intp,lat_intp,hgtlvs,ddrylos,dwetlos,attr, maxdem, mindem, inps.lalo_rescale,inps.method,inps.sklm_points_numb)
-        
-        delay_tot = dwet_intp + ddry_intp
-        
-        latv = latvv[:,0]
-        lonv = lonvv[0,:]
-        linearint_dry = intp.RegularGridInterpolator((latv[::-1], lonv, hgtuse), ddry_intp[::-1,:,:], method='linear', bounds_error=False, fill_value = 0.0)
-        linearint_wet = intp.RegularGridInterpolator((latv[::-1], lonv, hgtuse), dwet_intp[::-1,:,:], method='linear', bounds_error=False, fill_value = 0.0)
-        
-        sar_wet00  = linearint_wet(np.vstack((lala, lolo, hh)).T)
-        sar_wet0[~np.isnan(lats0)] = sar_wet00
-        sar_wet0 = sar_wet0.reshape(lats.shape)
-        
-        sar_dry00  = linearint_dry(np.vstack((lala, lolo, hh)).T)
-        sar_dry0[~np.isnan(lats0)] = sar_dry00
-        sar_dry0 = sar_dry0.reshape(lats.shape)
-
-        sar_delay = sar_wet0 + sar_dry0
-        
-    elif inps.project =='zenith':
-        ddry_zenith,dwet_zenith = ut.PTV2del(Presi,Tempi,Vpri,hgtlvs,cdic)
-        dwet_intp,ddry_intp, lonvv, latvv, hgtuse = ut.icams_griddata_zenith(lonlist,latlist,hgtlvs,ddry_zenith,dwet_zenith, attr, maxdem, mindem, inps.lalo_rescale,inps.method,inps.sklm_points_numb)
-        
-        latv = latvv[:,0]
-        lonv = lonvv[0,:]
-        
-        delay_tot = dwet_intp + ddry_intp
-        linearint_dry = intp.RegularGridInterpolator((latv[::-1], lonv, hgtuse), ddry_intp[::-1,:,:], method='linear', bounds_error=False, fill_value = 0.0)
-        linearint_wet = intp.RegularGridInterpolator((latv[::-1], lonv, hgtuse), dwet_intp[::-1,:,:], method='linear', bounds_error=False, fill_value = 0.0)
-        
-        sar_wet00  = linearint_wet(np.vstack((lala, lolo, hh)).T)
-        sar_wet0[~np.isnan(lats0)] = sar_wet00
-        sar_wet0 = sar_wet0.reshape(lats.shape)
-        
-        sar_dry00  = linearint_dry(np.vstack((lala, lolo, hh)).T)
-        sar_dry0[~np.isnan(lats0)] = sar_dry00
-        sar_dry0 = sar_dry0.reshape(lats.shape)
-        
-        if inps.incAngle:
-            inc = ut.read_hdf5(inps.incAngle,datasetName='mask')[0] 
-        else:
-            inc = ut.read_hdf5(geo_file,datasetName='incidenceAngle')[0]
-        
-        sar_wet0 = sar_wet0/np.cos(inc/180*np.pi)
-        sar_dry0 = sar_dry0/np.cos(inc/180*np.pi)
     
-        sar_delay = sar_wet0 + sar_dry0
+    meta = dict()
+    meta['EARTH_RADIUS'] = str(6371)
+    meta['DATE'] = date
+    meta['CENTER_TIME'] = cent_time
+    meta['WIDTH'] = WIDTH
+    meta['LENGTH'] = LENGTH
+    meta['X_FIRST'] = X_FIRST
+    meta['Y_FIRST'] = Y_FIRST
+    meta['X_STEP'] = lon_step
+    meta['Y_STEP'] = lat_step
+    
+    ddry_zenith,dwet_zenith = ut.PTV2del(Presi,Tempi,Vpri,hgtlvs,cdic)
+    dwet_intp,ddry_intp, lonvv, latvv, hgtuse = ut.icams_griddata_zenith(lonlist,latlist,hgtlvs,ddry_zenith,dwet_zenith, meta, maxdem, mindem, 5,'sklm',20)
+        
+    latv = latvv[:,0]
+    lonv = lonvv[0,:]
+        
+    delay_tot = dwet_intp + ddry_intp
+    linearint_dry = intp.RegularGridInterpolator((latv[::-1], lonv, hgtuse), ddry_intp[::-1,:,:], method='linear', bounds_error=False, fill_value = 0.0)
+    linearint_wet = intp.RegularGridInterpolator((latv[::-1], lonv, hgtuse), dwet_intp[::-1,:,:], method='linear', bounds_error=False, fill_value = 0.0)
+        
+    sar_wet00  = linearint_wet(np.vstack((lala, lolo, hh)).T)
+    sar_wet0[~np.isnan(lats0)] = sar_wet00
+    sar_wet0 = sar_wet0.reshape(lats.shape)
+        
+    sar_dry00  = linearint_dry(np.vstack((lala, lolo, hh)).T)
+    sar_dry0[~np.isnan(lats0)] = sar_dry00
+    sar_dry0 = sar_dry0.reshape(lats.shape)
+       
+    sar_delay = sar_wet0 + sar_dry0
+    
+    OUT_dry = era5_sar_dir + '/' + date + '_dry.h5'
+    OUT_wet = era5_sar_dir + '/' + date + '_wet.h5'
+    OUT_tot = era5_sar_dir + '/' + date + '_tot.h5'
+        
+    datasetDict = dict()
+    datasetDict['tot_delay'] = sar_delay    
+    ut.write_h5(datasetDict, OUT_tot, metadata= meta, ref_file=None, compression=None)
     
     datasetDict = dict()
-    datasetDict['tot_delay'] = sar_delay
-    datasetDict['wet_delay'] = sar_wet0
-    datasetDict['dry_delay'] = sar_dry0
+    datasetDict['dry_delay'] = sar_dry0  
+    ut.write_h5(datasetDict, OUT_dry, metadata= meta, ref_file=None, compression=None)
     
-    ut.write_h5(datasetDict, OUT, metadata= attr, ref_file=None, compression=None)
-
+    datasetDict = dict()
+    datasetDict['wet_delay'] = sar_wet0   
+    ut.write_h5(datasetDict, OUT_wet, metadata= meta, ref_file=None, compression=None)
+    os.chdir(root_path)
     sys.exit(1)
 ###############################################################
 

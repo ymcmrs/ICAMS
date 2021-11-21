@@ -79,8 +79,8 @@ def cmdLineParse():
 
     parser.add_argument('ts_file',help='input InSAR time-series file name (e.g., timeseries.h5).')
     parser.add_argument('geo_file',help='input geometry file name (e.g., geometryRadar.h5).')
-    parser.add_argument('sar_par', help='SLC_par file for providing orbit state paramters.')
-    parser.add_argument('--project', dest='project', choices = {'zenith','los'},default = 'los',help = 'project method for calculating the accumulated delays. [default: los]')
+    parser.add_argument('--sar-par', dest='sar_par',help='SLC_par file for providing orbit state paramters.')
+    parser.add_argument('--project', dest='project', choices = {'zenith','los'},default = 'zenith',help = 'project method for calculating the accumulated delays. sar_par file must be provided when using los. [default: zenith]')
     parser.add_argument('--incAngle', dest='incAngle', metavar='FILE',help='incidence angle file for projecting zenith to los, for case of PROJECT = ZENITH when geo_file does not include [incidenceAngle].')
     parser.add_argument('--method', dest='method', choices = {'sklm','linear','cubic'},default = 'sklm',help = 'method used to interp the high-resolution map. [default: sklm]')
     parser.add_argument('--sklm-points-numb', dest='sklm_points_numb', type=int, default=20, help='Number of the closest points used for sklm interpolation. [default: 20]')
@@ -100,11 +100,11 @@ INTRODUCTION = '''
 
 EXAMPLE = """example:
   
-  tropo_icams.py timeseries.h5 geometryRadar.h5 SAR.slc.par --lalo-rescale 10 
-  tropo_icams.py timeseries.h5 geometryRadar.h5 SAR.slc.par --project zenith
-  tropo_icams.py timeseries.h5 geometryRadar.h5 SAR.slc.par --project los --lalo-rescale 5
-  tropo_icams.py timeseries.h5 geometryRadar.h5 SAR.slc.par --project los --method linear
-  tropo_icams.py timeseries.h5 geometryRadar.h5 SAR.slc.par --project los --method sklm
+  tropo_icams.py timeseries.h5 geometryRadar.h5 --sar-par SAR.slc.par --lalo-rescale 10 
+  tropo_icams.py timeseries.h5 geometryRadar.h5 --project zenith
+  tropo_icams.py timeseries.h5 geometryRadar.h5 --sar-par SAR.slc.par --project los --lalo-rescale 5
+  tropo_icams.py timeseries.h5 geometryRadar.h5 --project zenith --method linear
+  tropo_icams.py timeseries.h5 geometryRadar.h5 --sar-par SAR.slc.par --project los --method sklm
 
   
 ###################################################################################
@@ -116,7 +116,9 @@ def main(argv):
     inps = cmdLineParse() 
     ts_file = inps.ts_file
     geo_file = inps.geo_file
-    slc_par = inps.sar_par
+    
+    if inps.project == 'los': 
+        slc_par = inps.sar_par
     
     root_dir = os.getcwd()
     icams_dir = root_dir + '/icams'
@@ -191,10 +193,15 @@ def main(argv):
     print('Number of high-resolution maps need to be generated: %s' % str(len(date_generate)))  
     
     
+    if inps.project=='los':
+        slc_par_str = ' --sar-par ' + inps.sar_par
+    else:
+        slc_par_str = ''
+        
     for i in range(len(date_generate)):
         
         print('Date: ' + date_generate[i] + ' (' + str(i+1) + '/' + str(len(date_generate)) + ')')
-        call_str = 'tropo_icams_sar.py ' + geo_file + ' ' + slc_par + ' --date ' + date_generate[i] + ' --method ' + inps.method + ' --project ' + inps.project + ' --lalo-rescale ' + str(inps.lalo_rescale) + ' --sklm-points-numb ' + str(inps.sklm_points_numb)
+        call_str = 'tropo_icams_sar.py ' + geo_file + ' ' + slc_par_str + ' --date ' + date_generate[i] + ' --method ' + inps.method + ' --project ' + inps.project + ' --lalo-rescale ' + str(inps.lalo_rescale) + ' --sklm-points-numb ' + str(inps.sklm_points_numb)
         os.system(call_str)        
    
     print('')

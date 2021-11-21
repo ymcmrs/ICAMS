@@ -40,7 +40,12 @@ Download the development version using git:
     $CONDA_PREFIX/bin/pip install git+https://github.com/ymcmrs/PyKrige.git   
     $CONDA_PREFIX/bin/pip install git+https://github.com/ymcmrs/elevation.git 
     
- 3）Install gdal and download global geoid model (e.g., egm2008-1.pgm, need to change the default geoid-data path in geoid.py) 
+ 3）Install gdal and download global geoid model (e.g., egm2008-1.pgm, need to change the default geoid-data path in geoid.py)
+  
+ 4) update CDS information in user.cfg 
+
+    [CDS]
+    key = [your CDS key]
 
 ### 2 Running ICAMS
 
@@ -64,19 +69,11 @@ Download the development version using git:
 3). icamsApp.py  (under development) 
         
 
-### 3 Key steps
-
-    The key steps of ICAMS can be summarized as follow: <br> 
-
-    step 1: Download weather model data [Make sure you have updated the user.cfg file].\
-    Step 2: Pre-processing of GAM outputs (P-layers to H-layers)\
-    Step 3: Estimating LOS locations at different altitude layers [You need to input slc.par file to provide orbit data] \
-    Step 4: Predicting trop-parameters at LOS locations (SKlm) [Make sure you have [PyKrige](https://pypi.org/project/PyKrige/) module available] \
-    Step 5: Calculating LOS delays \
-    Step 6: Interpolating LOS delays (SKlm) layer by layer \
-    Step 7: Interpolating SAR/InSAR tropospheric delays [Make sure you have [elevation](https://pypi.org/project/elevation/) available and download the global geoid data] 
-
-
-
-Citation: [Cao, Y.M., Jónsson, S., Li, Z.W., 2021, Advanced InSAR Tropospheric Corrections from Global Atmospheric Models that Incorporate Spatial Stochastic Properties of the Troposphere, Journal of geophysical research: solid earth, doi: 10.1029/2020JB020952](https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2020JB020952)
+### 3 Citation
+    
+    If you find our research helpful or use our toolbox, please cite the following paper:
+    
+    Cao, Y., Jónsson, S. and Li, Z., 2021. Advanced InSAR tropospheric Corrections from global atmospheric models that incorporate spatial stochastic properties of the troposphere. Journal of Geophysical Research: Solid Earth, 126(5), p.e2020JB020952.
+    
+    Thanks for your support! 
 

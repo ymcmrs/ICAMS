@@ -59,9 +59,10 @@ Download the development version using git:
      e.g. :
         tropo_icams_sar.py geometryRadar.h5 --date 20180101 
         tropo_icams.py timeseries.h5 geometryRadar.h5 --project zenith --method sklm
-        tropo_icams.py timeseries.h5 geometryRadar.h5 --sar-par 20181025.slc.par --project los --method sklm    (if you are a GAMMA user)
-        
+        tropo_icams.py timeseries.h5 geometryRadar.h5 --sar-par 20181025.slc.par --project los --method sklm    (if you are a GAMMA user) 
+
 3) icamsApp.py  (still under development) 
+        
 
 The key steps of ICAMS can be summarized as follow: <br> 
 

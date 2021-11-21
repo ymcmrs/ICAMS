@@ -46,7 +46,7 @@ Download the development version using git:
 
 ### 2 Running ICAMS
 
-1). Zenith delay products generation (all you need to provide are region + imaging-time)
+1). Zenith delay products generation (all you need to provide are region + imaging-time + date or datelist)
 
      tropo_icams_date.py  or  tropo_icams_date_list.py
   

@@ -52,7 +52,7 @@ Download the development version using git:
         tropo_icams_date.py 20201024 --region " 172.8/173.8/-42.6/-41.6 " --imaging-time 11:24 
         tropo_icams_date.py --date-list 20201024 20201023 20201025 20201026 --region " 172.8/173.8/-42.6/-41.6 " --imaging-time 11:24 --parallel 4 
 
-2) InSAR correction. (if you are a MintPy user) 
+2). InSAR correction. (if you are a MintPy user) 
 
      tropo_icams_sar.py  or  tropo_icams.py
   
@@ -61,7 +61,7 @@ Download the development version using git:
         tropo_icams.py timeseries.h5 geometryRadar.h5 --project zenith --method sklm
         tropo_icams.py timeseries.h5 geometryRadar.h5 --sar-par 20181025.slc.par --project los --method sklm    (if you are a GAMMA user) 
 
-3) icamsApp.py  (still under development) 
+3). icamsApp.py  (under development) 
         
 
 The key steps of ICAMS can be summarized as follow: <br> 

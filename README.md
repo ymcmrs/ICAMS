@@ -38,6 +38,7 @@ Download the development version using git:
  2) Install dependencies
     
     $CONDA_PREFIX/bin/pip install git+https://github.com/ymcmrs/PyKrige.git
+    
     $CONDA_PREFIX/bin/pip install git+https://github.com/ymcmrs/elevation.git
     
  3） Install gdal, elevation module using pip or conda for DEM processing.
@@ -54,8 +55,8 @@ Download the development version using git:
         tropo_icams_date.py 20201024 --region " 172.8/173.8/-42.6/-41.6 " --imaging-time 11:24 
         tropo_icams_date.py --date-list 20201024 20201023 20201025 20201026 --region " 172.8/173.8/-42.6/-41.6 " --imaging-time 11:24 --parallel 4 
 
-2) InSAR correction. (if you are a MintPy user)
-     
+2) InSAR correction. (if you are a MintPy user
+
      tropo_icams_sar.py  or  tropo_icams.py
      
      e.g. :

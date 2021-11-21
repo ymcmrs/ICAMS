@@ -358,7 +358,7 @@ def main(argv):
         if not os.path.isdir(dem_dir):
             os.mkdir(dem_dir)
         os.chdir(dem_dir)
-        call_str = 'eio --product SRTM1 clip -o dem.tif --bounds ' + str(w + 0.1) + ' ' + str(s+0.1) + ' ' + str(e+0.1) + ' ' + str(n+0.1)
+        call_str = 'eio --product SRTM1 clip -o dem.tif --bounds ' + str(w - 0.1) + ' ' + str(s-0.1) + ' ' + str(e+0.1) + ' ' + str(n+0.1)
         print(call_str)
         os.system(call_str)
         dem0 = dem_dir + '/dem.tif'

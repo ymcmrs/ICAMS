@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 #################################################################
-###  This program is part of icams  v1.0                     ### 
-###  Copy Right (c): 2020, Yunmeng Cao                        ###  
+###  This program is part of icams  v2.0                     ### 
+###  Copy Right (c): 2021, Yunmeng Cao                        ###  
 ###  Author: Yunmeng Cao                                      ###                                                          
 ###  Email : ymcmrs@gmail.com                                 ### 
 #################################################################

@@ -52,10 +52,10 @@ Download the development version using git:
         tropo_icams_date.py 20201024 --region " 172.8/173.8/-42.6/-41.6 " --imaging-time 11:24 
         tropo_icams_date.py --date-list 20201024 20201023 20201025 20201026 --region " 172.8/173.8/-42.6/-41.6 " --imaging-time 11:24 --parallel 4 
 
-2) InSAR correction. (if you are a MintPy user)
+2) InSAR correction. (if you are a MintPy user) 
 
      tropo_icams_sar.py  or  tropo_icams.py
-     
+  
      e.g. :
         tropo_icams_sar.py geometryRadar.h5 --date 20180101 
         tropo_icams.py timeseries.h5 geometryRadar.h5 --project zenith --method sklm

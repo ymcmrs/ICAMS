@@ -31,7 +31,7 @@ Download the development version using git:
     setenv PATH          ${PATH}:${PYTHON3DIR}/bin
     
     ##--------- PyINT ------------------## 
-    setenv ICAMS_HOME    ~/python/PyINT       
+    setenv ICAMS_HOME    ~/python/ICAMS      
     setenv PYTHONPATH    ${PYTHONPATH}:${ICAMS_HOME}
     setenv PATH          ${PATH}:${ICAMS_HOME}/icams
     

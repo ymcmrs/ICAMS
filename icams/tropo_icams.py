@@ -73,7 +73,7 @@ def generate_datelist_txt(date_list,txt_name):
     return
 
 def cmdLineParse():
-    parser = argparse.ArgumentParser(description='Check common busrts for TOPS data.',\
+    parser = argparse.ArgumentParser(description='Correcting InSAR time-series tropospheric delays.',\
                                      formatter_class=argparse.RawTextHelpFormatter,\
                                      epilog=INTRODUCTION+'\n'+EXAMPLE)
 

@@ -35,7 +35,7 @@ Download the development version using git:
     setenv PYTHONPATH    ${PYTHONPATH}:${ICAMS_HOME}
     setenv PATH          ${PATH}:${ICAMS_HOME}/icams
     
- 2) Install dependencies
+ 2） Install dependencies
     
     $CONDA_PREFIX/bin/pip install git+https://github.com/ymcmrs/PyKrige.git   
     $CONDA_PREFIX/bin/pip install git+https://github.com/ymcmrs/elevation.git 

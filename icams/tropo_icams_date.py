@@ -25,7 +25,7 @@ from icams import _utils as ut
 from pykrige import OrdinaryKriging
 from pykrige import variogram_models
 #import matlab.engine # using matlab to estimate the variogram parameters
-from mintpy.utils import ptime
+
 ###############################################################
 
 model_dict = {'linear': elevation_models.linear_elevation_model,

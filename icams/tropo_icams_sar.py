@@ -254,7 +254,7 @@ def cmdLineParse():
                                      epilog=INTRODUCTION+'\n'+EXAMPLE)
 
     parser.add_argument('geo_file',help='input geometry file name (e.g., geometryRadar.h5).')
-    parser.add_argument('--sar_par', dest='sar_par', help='SLC_par file for providing orbit state paramters.')
+    parser.add_argument('--sar-par', dest='sar_par', help='SLC_par file for providing orbit state paramters.')
     parser.add_argument('--date', dest='date', help = 'SAR acquisition time for generating the delay maps.')
     parser.add_argument('--method', dest='method', choices = {'sklm','linear','cubic'},default = 'sklm',help = 'method used to interp the high-resolution map. [default: kriging]')
     parser.add_argument('--project', dest='project', choices = {'zenith','los'},default = 'zenith',help = 'project method for calculating the accumulated delays. [default: los]')

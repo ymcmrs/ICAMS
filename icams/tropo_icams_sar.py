@@ -254,13 +254,13 @@ def cmdLineParse():
                                      epilog=INTRODUCTION+'\n'+EXAMPLE)
 
     parser.add_argument('geo_file',help='input geometry file name (e.g., geometryRadar.h5).')
-    parser.add_argument('--sar-par', dest='sar_par', help='SLC_par file for providing orbit state paramters.')
+    parser.add_argument('sar_par', help='SLC_par file for providing orbit state paramters.')
     parser.add_argument('--date', dest='date', help = 'SAR acquisition time for generating the delay maps.')
-    parser.add_argument('--method', dest='method', choices = {'sklm','linear','cubic'},default = 'sklm',help = 'method used to interp the high-resolution map. [default: kriging]')
-    parser.add_argument('--project', dest='project', choices = {'zenith','los'},default = 'zenith',help = 'project method for calculating the accumulated delays. [default: los]')
+    parser.add_argument('--method', dest='method', choices = {'kriging','linear','cubic'},default = 'kriging',help = 'method used to interp the high-resolution map. [default: kriging]')
+    parser.add_argument('--project', dest='project', choices = {'zenith','los'},default = 'los',help = 'project method for calculating the accumulated delays. [default: los]')
     parser.add_argument('--incAngle', dest='incAngle', metavar='FILE',help='incidence angle file for projecting zenith to los, for case of PROJECT = ZENITH when geo_file does not include [incidenceAngle].')
     parser.add_argument('--lalo-rescale', dest='lalo_rescale', type=int, default=5, help='oversample rate of the lats and lons [default: 5]')
-    parser.add_argument('--sklm-points-numb', dest='sklm_points_numb', type=int, default=15, help='Number of the closest points used for Kriging interpolation. [default: 15]')
+    parser.add_argument('--kriging-points-numb', dest='kriging_points_numb', type=int, default=15, help='Number of the closest points used for Kriging interpolation. [default: 15]')
     parser.add_argument('-o','--out', dest='out_file', metavar='FILE',help='name of the prefix of the output file')
        
     inps = parser.parse_args()
@@ -277,11 +277,12 @@ INTRODUCTION = '''
 
 EXAMPLE = """Example:
   
-  tropo_icams_sar.py geometryRadar.h5 --sar-par master.slc.par --project los -o 20190101_icams.h5
-  tropo_icams_sar.py geometryRadar.h5 --date 20180101 
-  tropo_icams_sar.py geometryRadar.h5 --date 20180101 --project zenith --method sklm 
-  tropo_icams_sar.py geometryRadar.h5 --date 20180101 --project zenith --method linear 
-  tropo_icams_sar.py geometryRadar.h5 --date 20180101 --project zenith --method linear --out 20180101_icams.h5
+  tropo_icams_sar.py geometryRadar.h5 master.slc.par -o 20190101_icams.h5
+  tropo_icams_sar.py geometryRadar.h5 master.slc.par --date 20180101 -o 20180101_icams.h5
+  tropo_icams_sar.py geometryRadar.h5 master.slc.par --method kriging --project los
+  tropo_icams_sar.py geometryRadar.h5 master.slc.par --date 19700101 --lalo-resclae 10
+  tropo_icams_sar.py geometryRadar.h5 master.slc.par --method linear --project zenith
+  tropo_icams_sar.py geometryRadar.h5 master.slc.par --method linear --project zenith 
 
 ###################################################################################
 """
@@ -302,11 +303,9 @@ def main(argv):
         lats,lons = ut.get_lat_lon(meta)  
     heis = ut.read_hdf5(geo_file,datasetName='height')[0]    
     
-    if inps.project =='los':
-        slc_par  = inps.sar_par
-        orb_data = read_par_orb(slc_par)
-        
+    slc_par  = inps.sar_par
     attr = ut.read_attr(geo_file)
+    orb_data = read_par_orb(slc_par)
     date0 = ut.read_gamma_par(slc_par,'read', 'date')
     date = str(int(date0.split(' ')[0])) + str(int(date0.split(' ')[1])) + str(int(date0.split(' ')[2]))
     
@@ -400,28 +399,19 @@ def main(argv):
     hgtlvs = np.asarray(hgtlvs)
 
     Presi,Tempi,Vpri = ut.intP2H(lvls,hgtlvs,gph,tmp,vpr,cdic,verbose=False)
-    
-    lat_intp_binary = era5_dir + '/lat_intp.npy'
-    lon_intp_binary = era5_dir + '/lon_intp.npy'
-    los_intp_binary = era5_dir + '/los_intp.npy'
     if inps.project =='los':
         # calc los coords
         #print('Start to calc LOS locations ...')
-        if not os.path.isfile(lat_intp_binary):
-            lat_intp, lon_intp, los_intp = ut.get_LOS3D_coords(latlist,lonlist,hgtlvs, orb_data, attr)
-            np.save(lat_intp_binary, lat_intp); np.save(lon_intp_binary, lon_intp); np.save(los_intp_binary, los_intp)
-        else:
-            lat_intp = np.load(lat_intp_binary);lon_intp = np.load(lon_intp_binary);los_intp = np.load(los_intp_binary)
- 
+        lat_intp, lon_intp, los_intp = ut.get_LOS3D_coords(latlist,lonlist,hgtlvs, orb_data, attr)
         # get los locations atmospheric paramters
         #print('Start to calc LOS atmospheric parameters ...')
-        LosP,LosT,LosV = ut.get_LOS_parameters(latlist,lonlist,Presi,Tempi,Vpri,lat_intp, lon_intp,inps.method,inps.sklm_points_numb)
+        LosP,LosT,LosV = ut.get_LOS_parameters(latlist,lonlist,Presi,Tempi,Vpri,lat_intp, lon_intp,inps.method,inps.kriging_points_numb)
         # calc los delays
         #print('Start to calculate LOS delays ...')
         ddrylos,dwetlos = ut.losPTV2del(LosP,LosT,LosV,los_intp ,cdic,verbose=False)
         # interp grid delays
         print('Start to interpolate delays ...')
-        dwet_intp,ddry_intp, lonvv, latvv, hgtuse = ut.icams_griddata_los(lon_intp,lat_intp,hgtlvs,ddrylos,dwetlos,attr, maxdem, mindem, inps.lalo_rescale,inps.method,inps.sklm_points_numb)
+        dwet_intp,ddry_intp, lonvv, latvv, hgtuse = ut.icams_griddata_los(lon_intp,lat_intp,hgtlvs,ddrylos,dwetlos,attr, maxdem, mindem, inps.lalo_rescale,inps.method,inps.kriging_points_numb)
         
         delay_tot = dwet_intp + ddry_intp
         
@@ -442,7 +432,7 @@ def main(argv):
         
     elif inps.project =='zenith':
         ddry_zenith,dwet_zenith = ut.PTV2del(Presi,Tempi,Vpri,hgtlvs,cdic)
-        dwet_intp,ddry_intp, lonvv, latvv, hgtuse = ut.icams_griddata_zenith(lonlist,latlist,hgtlvs,ddry_zenith,dwet_zenith, attr, maxdem, mindem, inps.lalo_rescale,inps.method,inps.sklm_points_numb)
+        dwet_intp,ddry_intp, lonvv, latvv, hgtuse = ut.icams_griddata_zenith(lonlist,latlist,hgtlvs,ddry_zenith,dwet_zenith, attr, maxdem, mindem, inps.lalo_rescale,inps.method,inps.kriging_points_numb)
         
         latv = latvv[:,0]
         lonv = lonvv[0,:]

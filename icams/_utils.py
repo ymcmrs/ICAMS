@@ -113,8 +113,8 @@ def ECMWFdload(bdate,hr,filedir,model='ERA5',datatype='fc',humidity='Q',snwe=Non
         key = config.get('CDS', 'key')
 
         # Contact the server
-        c = cdsapi.Client(url=url, key=key)
-
+        #c = cdsapi.Client(url=url, key=key)
+        c = cdsapi.Client()
         # Pressure levels
         pressure_lvls = ['1','2','3','5','7','10','20','30','50', 
                             '70','100','125','150','175','200','225',
@@ -914,6 +914,12 @@ def read_txt2array(txt):
     #A = list(A)    
     return A
 
+def sort_lon(lon0):
+    f0 = np.max(lon0) - np.min(lon0)
+    if f0 > 180.0:
+        lon0[lon0>180] = lon0[lon0>180] - 360
+    return lon0
+
 def orb_state_lalo_uLOS(lat0,lon0,orb_data,attr):
     
     width = int(attr['WIDTH'])
@@ -1082,7 +1088,7 @@ def read_demtif(dem_tif):
     return dem_data, attr
 
 def get_LOS3D_coords(latlist,lonlist,hgt_lvs, orb_data,attr):
-    
+    lonlist = sort_lon(lonlist)
     width = int(attr['WIDTH'])
     length = int(attr['LENGTH'])
     ref_lat1 = float(attr['LAT_REF1'])
@@ -1119,8 +1125,11 @@ def get_LOS3D_coords(latlist,lonlist,hgt_lvs, orb_data,attr):
     
     return lat_intp, lon_intp, los_intp
 
+
 def get_LOS_parameters(latlist,lonlist,Presi,Tempi,Vpri,latH, lonH, method,kriging_points_numb):
     R = 6371
+    lonlist = sort_lon(lonlist)
+    lonH = sort(lonH)
     row,col,nh = Presi.shape
     latv = latlist[:,0]
     lonv = lonlist[0,:]
@@ -1204,6 +1213,8 @@ def get_LOS_parameters(latlist,lonlist,Presi,Tempi,Vpri,latH, lonH, method,krigi
 def kriging_levels(lonlos,latlos,hgtlvs,dwetlos,attr, maxdem, mindem, Rescale,kriging_points_numb):
     R = 6371 
     # Get interp grids    
+    lonlos = sort_lon(lonlos)
+    
     lonStep = lonlos[0,1,0] - lonlos[0,0,0]
     latStep = latlos[1,0,0] - latlos[0,0,0]
     
@@ -1281,6 +1292,8 @@ def kriging_levels(lonlos,latlos,hgtlvs,dwetlos,attr, maxdem, mindem, Rescale,kr
     return dwet_intp, lonvv, latvv, hgtuseful
 
 def interp2d_levels(lonlos,latlos,hgtlvs,delaylos,attr, maxdem, mindem, Rescale):
+    
+    lonlos = sort_lon(lonlos)
     # Get interp grids    
     lonStep = lonlos[0,1,0] - lonlos[0,0,0]
     latStep = latlos[1,0,0] - latlos[0,0,0]
@@ -1350,6 +1363,7 @@ def icams_griddata_los(lonlos,latlos,hgtlvs,ddrylos,dwetlos,attr, maxdem, mindem
 
 def kriging_levels_zenith(lonlist,latlist,hgtlvs,dwetlos,attr, maxdem, mindem, Rescale,kriging_points_numb):
     R = 6371
+    lonlist = sort_lon(lonlist)
     # Get interp grids    
     lat = latlist.flatten()
     lon = lonlist.flatten()
@@ -1426,6 +1440,7 @@ def kriging_levels_zenith(lonlist,latlist,hgtlvs,dwetlos,attr, maxdem, mindem, R
 
 def interp2d_levels_zenith(lonlist,latlist,hgtlvs,delaylos,attr, maxdem, mindem, Rescale):
   
+    lonlist = sort_lon(lonlist)
     # Get interp grids    
     lat = latlist.flatten()
     lon = lonlist.flatten()

@@ -193,15 +193,20 @@ def main(argv):
     print('Number of high-resolution maps need to be generated: %s' % str(len(date_generate)))  
     
     
-    if inps.project=='los':
+    if inps.sar_par:
         slc_par_str = ' --sar-par ' + inps.sar_par
     else:
         slc_par_str = ''
         
+    if inps.incAngle:
+        inc_angle = ' --incAngle ' + inps.incAngle
+    else:
+        inc_angle = ''
+        
     for i in range(len(date_generate)):
         
         print('Date: ' + date_generate[i] + ' (' + str(i+1) + '/' + str(len(date_generate)) + ')')
-        call_str = 'tropo_icams_sar.py ' + geo_file + ' ' + slc_par_str + ' --date ' + date_generate[i] + ' --method ' + inps.method + ' --project ' + inps.project + ' --lalo-rescale ' + str(inps.lalo_rescale) + ' --sklm-points-numb ' + str(inps.sklm_points_numb) + ' --ref-file ' + ts_file
+        call_str = 'tropo_icams_sar_geo.py ' + geo_file + ' ' + slc_par_str + ' ' + inc_angle +  ' --date ' + date_generate[i] + ' --method ' + inps.method + ' --project ' + inps.project + ' --lalo-rescale ' + str(inps.lalo_rescale) + ' --sklm-points-numb ' + str(inps.sklm_points_numb)
         os.system(call_str)        
    
     print('')

@@ -69,7 +69,7 @@ def main(argv):
     else: atm_dir = path0 + '/icams/ERA5/sar'
         
     if inps.date_list:
-        date_list = np.loadtxt(inps.date_list,dtype=np.str)
+        date_list = np.loadtxt(inps.date_list,dtype=np.str_)
         date_list = date_list.tolist()
     else:
         print('')
